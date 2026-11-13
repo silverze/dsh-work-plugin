@@ -12,3 +12,18 @@ updates:
     ignore:
       - dependency-name: "@deepseek-ai/*"
         update-types: ["version-update:semver-minor", "version-update:semver-major"]
+      # zod is pinned by the host at one exact version; two copies in the tree
+      # break structural typing between the plugin's schemas and the host's.
+      - dependency-name: "zod"
+      # TypeScript and React majors land with breaking API changes; bump them
+      # by hand together with the code, not through an automated PR.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-dom"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/react-dom"
+        update-types: ["version-update:semver-major"]
