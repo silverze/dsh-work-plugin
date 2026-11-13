@@ -74,7 +74,7 @@
 - **群聊/单聊**：只认正证据——标题带里出现群公告/群成员/添加成员/`128人`，会话名以「群」结尾，或昵称后缀（`示例名字（Alex）` 这种「中文名（英文名）」）、副标题里的部门职称判定为单聊；都没有就显示「会话」。`外部` 曾是群聊判据，但外部联系人的单聊也带这个标签，已移除（回归用例在本文件的测试里）。
 - **跟随**：`capture()` 每次先用原生 helper 的 `--frontmost`（约 20ms，`NSWorkspace`，不需要新权限）判断飞书是否在前台；两次读屏至少间隔 1.5 秒；飞书不在前台时直接返回缓存，所以 DSH 里打字不会持续触发 OCR。真实窗口读屏约 1.2 秒（`screencapture -l` + Vision）。
 - **外观**：三套 token（`presence-style.ts` 的 `presenceChipTokens`）——DSH 默认胶囊、Codex（等宽 + 方角 + `›` 前缀）、Claude（暖陶土 `#D97757` + 10px 圆角 + `●`）；选择存放在宿主 `WorkSettings.presenceStyle`（枚举校验，非法值回落 `dsh`），客户端用 `WorkbenchController.subscribePresenceStyle` 订阅，设置页点选后 chip 立即换装。设置页里的预览一律用 `PRESENCE_SAMPLE`（「群聊｜示例产品群 · 12 行」）这组虚构样例：插件与截图会分发到别人的机器，任何真实会话名都不能写进源码或文档。
-- **客户端**：`conversation.composer.dock` 上的 `dsh-work-feishu-context`（order -10，排在 activity/usage 之前）只在会话已开启工作模式时渲染；点击主按钮调用 `InputActions.insertQuote(text, summary)`，正文是带来源与时间戳的 Markdown blockquote，summary 只影响 composer 内的引用预览。
+- **客户端**：输入框上方的 `conversation.input.dock` 上挂 `dsh-work-context-row`（order 10，一行里放飞书 chip 与工作模式 chip，宽度/左缘对齐输入卡片）；飞书 chip 只在会话已开启工作模式时渲染；点击主按钮调用 `InputActions.insertQuote(text, summary)`，正文是带来源与时间戳的 Markdown blockquote，summary 只影响 composer 内的引用预览。
 - **刷新策略**：开启工作模式时先预热一次（`toggleWorkMode` 成功后立刻发起，chip 挂载时再强制读一次）；之后页面可见时每 2.5 秒轮询，宿主按前台判断决定是否真的读屏，于是「在飞书里连续切会话、DSH 停在旁边」能在约 2–4 秒内跟上；`window focus`、`visibilitychange` 触发强制重读（0.7 秒内的连点合并成一次，此时从飞书切回来读到的就是最新会话）；`focusin` 只走缓存，点回输入框不会触发 OCR；页面被飞书挡住、轮询被浏览器暂停时，宿主侧的 watch 每 3 秒接手，直到 chip 最后一次请求之后的 10 分钟。
 - **失败与边界**：CGWindowList 只列当前桌面的窗口，飞书最小化或切到别的 Space 时读不到；连续失败会退避 8 秒再试；90 秒内的失败当作瞬时抖动、静默保留上一次快照，更早的失败标记 `stale` 并把 chip 显示为「上次 …」——仍然可以一键引用。客户端把宿主的英文错误翻成一句可执行中文（不在当前桌面 / 没开飞书 / 缺屏幕录制权限 / 缺 Xcode 命令行工具）。引用的是屏幕可见消息（OCR），不是飞书全量历史；消息来自外部不可信内容，按普通用户输入对待。
 

@@ -51,12 +51,19 @@ test('client plugin registers native session work surfaces and one Feishu settin
   const names = registrations.map((entry) => entry.name)
   assert.ok(!names.includes('main'))
   assert.ok(!names.includes('sidebar.panellist'))
-  assert.ok(names.includes('conversation.input.left'))
+  assert.ok(names.includes('conversation.input.dock'))
+  assert.ok(!names.includes('conversation.input.left'))
+  assert.ok(!names.includes('conversation.composer.dock'))
   assert.ok(names.includes('sidebar.workspaces.session.row.action'))
   assert.ok(names.includes('sidebar.workspaces.session.menu.item'))
   assert.ok(names.includes('conversation.session.header.actions'))
   assert.ok(names.includes('sidebar.right.pane.tab'))
   assert.ok(names.includes('settings.section'))
+
+  // The Feishu chip and the work-mode toggle share the band above the composer.
+  const contextRow = registrations.find((entry) => entry.name === 'conversation.input.dock')
+  assert.equal(contextRow.id, 'dsh-work-context-row')
+  assert.equal(contextRow.order, 10)
 
   const sections = registrations.filter((entry) => entry.name === 'settings.section')
   assert.deepEqual(sections.map((entry) => entry.id), ['feishu'])
