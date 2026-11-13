@@ -21,7 +21,8 @@
     "check:public": "node scripts/check-public.mjs",
     "docs:check": "node scripts/check-docs.mjs",
     "release": "pnpm -r publish --access public --no-git-checks",
-    "pack": "pnpm -C packages/skills pack && pnpm -C packages/host-feishu pack && pnpm -C packages/host-work pack && pnpm -C packages/client-work pack && pnpm -C packages/bundle pack"
+    "pack": "pnpm -C packages/skills pack && pnpm -C packages/host-feishu pack && pnpm -C packages/host-work pack && pnpm -C packages/client-work pack && pnpm -C packages/bundle pack",
+    "release:publish": "node scripts/release-publish.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

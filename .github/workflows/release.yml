@@ -34,7 +34,7 @@ jobs:
       # so a tag push never leaves a red run behind.
       - name: Publish to npm
         if: ${{ env.NODE_AUTH_TOKEN != '' }}
-        run: pnpm -r publish --access public --no-git-checks --provenance
+        run: node scripts/release-publish.mjs
       - name: Skip notice
         if: ${{ env.NODE_AUTH_TOKEN == '' }}
         run: |

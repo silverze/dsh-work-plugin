@@ -35,14 +35,13 @@ at `github.com/silverze/dsh-work-plugin`.
 
 ## Publish to npm
 
-Order matters: the bundle resolves its dependencies from the registry.
+Order matters: the bundle resolves its dependencies from the registry, so the
+script publishes skills → feishu → host → client → bundle. Versions that are
+already on the registry are skipped, which makes a re-run (or a moved tag)
+safe.
 
 ```bash
-pnpm -C packages/skills-work publish --access public
-pnpm -C packages/host-feishu publish --access public
-pnpm -C packages/host-work publish --access public
-pnpm -C packages/client-work publish --access public
-pnpm -C packages/bundle publish --access public
+pnpm run release:publish          # add --dry-run to only print the plan
 ```
 
 Always publish with **pnpm**, never with `npm publish`: pnpm rewrites the
