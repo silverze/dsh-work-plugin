@@ -1,6 +1,6 @@
 {
   "name": "@dsh-work-plugin/feishu",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Feishu (Lark) OAuth, OpenAPI client, and model-facing tools for DSH Work.",
   "license": "MIT",
   "author": "silverze",
