@@ -46,11 +46,18 @@ dsh plugin add @dsh-work-plugin/bundle
 
 ```bash
 git clone https://github.com/silverze/dsh-work-plugin.git
-cd dsh-work
+cd dsh-work-plugin
 pnpm install
 pnpm build
-dsh plugin add ./packages/bundle
+pnpm --filter './packages/*' pack --pack-destination dist
+./scripts/install-work-profile.sh work dist
 ```
+
+The script installs the five packed tarballs into a profile named `work` and
+registers the bundle layer. Start it with
+`dsh --profile work`. A plain `dsh plugin add ./packages/bundle` is not enough:
+the CLI links a single directory, so the host, client, Feishu and skills
+packages the bundle depends on are never installed.
 
 ### Requirements
 

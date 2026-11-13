@@ -10,10 +10,14 @@
 set -euo pipefail
 
 PROFILE="${1:-work}"
-DIST="${2:-dist}"
+DIST="$(cd "${2:-dist}" && pwd)"
 DSH_BIN="${DSH_BIN:-dsh}"
 DSH_HOME="${DSH_HOME:-$HOME/.dsh}"
 PROFILE_DIR="$DSH_HOME/profiles/$PROFILE"
+
+VERSION="$(node -p "require('./packages/bundle/package.json').version")"
+TARBALL="dsh-work-plugin-bundle-$VERSION.tgz"
+[ -f "$DIST/$TARBALL" ] || { echo "missing $DIST/$TARBALL; run: pnpm --filter './packages/*' pack --pack-destination dist" >&2; exit 1; }
 
 echo "profile: $PROFILE"
 echo "home:    $DSH_HOME"
@@ -33,11 +37,11 @@ fi
 # 3. Install the bundle and its plugin packages.
 "$DSH_BIN" plugin --profile "$PROFILE" add \
   @deepseek-ai/dsh-web-app@0.2.2-rc.2 \
-  "$DIST/dsh-work-bundle-0.1.0.tgz" \
-  "$DIST/dsh-work-host-0.1.0.tgz" \
-  "$DIST/dsh-work-feishu-0.1.0.tgz" \
-  "$DIST/dsh-work-client-0.1.0.tgz" \
-  "$DIST/dsh-work-skills-0.1.0.tgz"
+  "$DIST/dsh-work-plugin-bundle-$VERSION.tgz" \
+  "$DIST/dsh-work-plugin-host-$VERSION.tgz" \
+  "$DIST/dsh-work-plugin-feishu-$VERSION.tgz" \
+  "$DIST/dsh-work-plugin-client-$VERSION.tgz" \
+  "$DIST/dsh-work-plugin-skills-$VERSION.tgz"
 
 # 4. Ensure the bundle layer is present (file specs are installed as plain
 #    dependencies by the current desktop CLI).

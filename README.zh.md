@@ -46,11 +46,16 @@ dsh plugin add @dsh-work-plugin/bundle
 
 ```bash
 git clone https://github.com/silverze/dsh-work-plugin.git
-cd dsh-work
+cd dsh-work-plugin
 pnpm install
 pnpm build
-dsh plugin add ./packages/bundle
+pnpm --filter './packages/*' pack --pack-destination dist
+./scripts/install-work-profile.sh work dist
 ```
+
+脚本会把五个 tgz 装进名为 `work` 的 profile，并登记 bundle 层；之后用
+`dsh --profile work` 启动。只执行 `dsh plugin add ./packages/bundle` 是不够的：
+CLI 只会链接这一个目录，bundle 依赖的 host、client、飞书、技能四个包不会被装上。
 
 ### 前置条件
 
