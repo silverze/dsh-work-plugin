@@ -80,7 +80,7 @@ export function WorkSessionBadge({
   )
 }
 
-/** Composer-left work mode chip. */
+/** Work-mode toggle in the context row above the composer. */
 export function WorkModeChip({
   sessionId,
   workbench,

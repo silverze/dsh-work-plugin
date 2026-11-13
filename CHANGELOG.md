@@ -6,6 +6,13 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- The Feishu conversation chip now renders in the context row above the composer
+  card, beside the work-mode toggle, instead of below the card: the row is
+  registered on `conversation.input.dock` ("entries above the composer card")
+  and sizes itself to the card's width, so both chips line up with its edges.
+
 ## [0.1.1] - 2026-11-13
 
 ### Fixed

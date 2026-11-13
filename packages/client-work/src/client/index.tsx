@@ -2,9 +2,9 @@
  * DSH Work client plugin.
  *
  * Keeps work inside native DSH sessions:
- * - a composer "work mode" chip + `work-mode` command,
- * - a Feishu presence chip above the composer dock that quotes the conversation
- *   on screen into the draft,
+ * - one context row above the composer card: a "work mode" chip + `work-mode`
+ *   command, and the Feishu presence chip that quotes the conversation on screen
+ *   into the draft,
  * - a status badge and per-session menu for WorkTasks,
  * - a session-header button opening the right-side work panel,
  * - one Feishu settings section with connection/preferences/data tabs.
@@ -16,20 +16,20 @@ import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
 import type {} from '@deepseek-ai/dsh-client-ui-workspace/client'
 
+import { ComposerContextRow } from './composer-context-row.js'
 import { WorkbenchController } from './controller.js'
-import { FeishuContextChip } from './feishu-context.js'
 import { parseFeishuLink } from './feishu-link.js'
 import { WORK_PARTNERS, composeTaskGoal } from './partners.js'
 import { FeishuSettingsShell } from './settings.js'
 import { WorkPanel } from './work-panel.js'
 import {
   WorkHeaderButton,
-  WorkModeChip,
   WorkSessionBadge,
   WorkSessionMenu,
   type WorkNotify,
 } from './work-session-ui.js'
 
+export { ComposerContextRow } from './composer-context-row.js'
 export { WorkbenchController } from './controller.js'
 export { WORK_PARTNERS, composeTaskGoal } from './partners.js'
 export { FeishuContextChip } from './feishu-context.js'
@@ -70,29 +70,17 @@ export function apply(ctx: ClientContext): void {
 
   ctx.effect(() => controller.startIndexPolling())
 
-  // Composer-left work mode chip.
-  ctx.slots.inject('conversation.input.left', () =>
+  // Context row above the composer card: the Feishu conversation being followed
+  // plus the work-mode toggle, on the band DSH renders above the input.
+  ctx.slots.inject('conversation.input.dock', () =>
     ctx.slots.register(
       {
-        name: 'conversation.input.left',
-        id: 'dsh-work-mode',
+        name: 'conversation.input.dock',
+        id: 'dsh-work-context-row',
         order: 10,
         inject: () => ({ workbench: controller, notify }),
       },
-      WorkModeChip,
-    ),
-  )
-
-  // Composer dock: one-click quote of the Feishu conversation on screen.
-  ctx.slots.inject('conversation.composer.dock', () =>
-    ctx.slots.register(
-      {
-        name: 'conversation.composer.dock',
-        id: 'dsh-work-feishu-context',
-        order: -10,
-        inject: () => ({ workbench: controller, notify }),
-      },
-      FeishuContextChip,
+      ComposerContextRow,
     ),
   )
 

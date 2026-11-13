@@ -4,6 +4,7 @@ import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 
 import {
+  ComposerContextRow,
   FeishuContextChip,
   feishuKindLabel,
   formatClock,
@@ -94,7 +95,7 @@ function fakeWorkbench({ withTask = true, presence, style = 'dsh' } = {}) {
   }
 }
 
-test('composer dock chip shows the focused Feishu conversation in work mode', () => {
+test('composer context chip shows the focused Feishu conversation in work mode', () => {
   const html = renderToStaticMarkup(
     React.createElement(FeishuContextChip, {
       sessionId: 's1',
@@ -116,7 +117,7 @@ test('composer dock chip shows the focused Feishu conversation in work mode', ()
   assert.match(html, /aria-haspopup="menu"/)
 })
 
-test('composer dock chip stays hidden outside work mode', () => {
+test('composer context chip stays hidden outside work mode', () => {
   const html = renderToStaticMarkup(
     React.createElement(FeishuContextChip, {
       sessionId: 's1',
@@ -128,7 +129,7 @@ test('composer dock chip stays hidden outside work mode', () => {
   assert.equal(html, '')
 })
 
-test('composer dock chip offers a retry when no conversation was found', () => {
+test('composer context chip offers a retry when no conversation was found', () => {
   const html = renderToStaticMarkup(
     React.createElement(FeishuContextChip, {
       sessionId: 's1',
@@ -152,6 +153,39 @@ test('composer dock chip offers a retry when no conversation was found', () => {
   assert.match(html, /没有发现运行中的飞书/)
 })
 
+test('one context row above the composer carries the Feishu chip and the mode toggle', () => {
+  const html = renderToStaticMarkup(
+    React.createElement(ComposerContextRow, {
+      sessionId: 's1',
+      workbench: fakeWorkbench({
+        presence: { ...entry(), detected: true, cached: false, recent: [] },
+      }),
+      notify: () => {},
+      inputActions: { insertQuote: () => true },
+    }),
+  )
+  assert.match(html, /data-dsh-work-composer-context/)
+  assert.match(html, /box-sizing:border-box/)
+  assert.match(html, /width:calc\(100% - var\(--dsh-composer-side-clearance, 16px\)/)
+  assert.match(html, /群聊｜示例产品群/)
+  assert.match(html, /工作模式 · 开/)
+  assert.ok(html.indexOf('群聊｜示例产品群') < html.indexOf('工作模式 · 开'))
+})
+
+test('the context row keeps the mode toggle reachable outside work mode', () => {
+  const html = renderToStaticMarkup(
+    React.createElement(ComposerContextRow, {
+      sessionId: 's1',
+      workbench: fakeWorkbench({ withTask: false, presence: entry() }),
+      notify: () => {},
+      inputActions: { insertQuote: () => true },
+    }),
+  )
+  assert.match(html, /data-dsh-work-composer-context/)
+  assert.match(html, /工作模式/)
+  assert.doesNotMatch(html, /群聊｜/)
+})
+
 test('read failures become one actionable Chinese sentence', () => {
   assert.match(
     presenceErrorHint('Feishu is running but its window is not on the current desktop (minimized or another Space)'),
@@ -167,7 +201,7 @@ test('read failures become one actionable Chinese sentence', () => {
   assert.equal(presenceErrorHint(undefined), '未读到飞书会话，稍后重试')
 })
 
-test('composer dock chip falls back to the last conversation when the screen cannot be read', () => {
+test('composer context chip falls back to the last conversation when the screen cannot be read', () => {
   const html = renderToStaticMarkup(
     React.createElement(FeishuContextChip, {
       sessionId: 's1',

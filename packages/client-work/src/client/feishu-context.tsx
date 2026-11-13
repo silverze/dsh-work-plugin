@@ -1,8 +1,8 @@
 /**
- * Feishu presence chip in the composer dock.
+ * Feishu presence chip above the composer card.
  *
  * Mirrors the "current screen context" affordance of enterprise chat
- * assistants: while work mode is on, the row directly below the composer shows
+ * assistants: while work mode is on, the row directly above the composer shows
  * the Feishu conversation that was on screen, and one click quotes it into the
  * draft. Because people flip between chats in Feishu faster than they switch to
  * DSH, the chip also keeps the last few conversations it saw.
