@@ -1,0 +1,102 @@
+{
+  "name": "@dsh-work-plug/client",
+  "version": "0.1.0",
+  "description": "DSH Work client plugins: workbench panel, artifact library, and Feishu settings for the web UI.",
+  "license": "MIT",
+  "author": "silverze",
+  "homepage": "https://github.com/silverze/dsh-work-plug#readme",
+  "bugs": {
+    "url": "https://github.com/silverze/dsh-work-plug/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/silverze/dsh-work-plug.git",
+    "directory": "packages/client-work"
+  },
+  "keywords": [
+    "dsh-plugin",
+    "dsh",
+    "deepseek-harness",
+    "workbench",
+    "client-plugin"
+  ],
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "lib",
+    "locale/*.json",
+    "icon.svg",
+    "README.md"
+  ],
+  "icon": "./icon.svg",
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=22",
+    "dsh": ">=0.2.2-rc.2 <0.3.0"
+  },
+  "scripts": {
+    "build": "tsdown && tsdown --config tsdown.client.config.ts && node ./wrap-client.mjs && tsdown --config tsdown.client-node.config.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dsh": {
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-api-remotes",
+        "@deepseek-ai/dsh-api-session-controller",
+        "@deepseek-ai/dsh-client-ui-layout",
+        "@deepseek-ai/dsh-client-ui-sidebar",
+        "@deepseek-ai/dsh-client-ui-conversation",
+        "@deepseek-ai/dsh-client-ui-sidebar-right",
+        "@deepseek-ai/dsh-client-ui-primitives",
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-settings",
+        "@deepseek-ai/dsh-client-ui-workspace",
+        "@deepseek-ai/dsh-client-ui-commands"
+      ]
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.1.0",
+    "@deepseek-ai/dsh-api-remotes": ">=0.2.2-rc.2 <0.2.3-0 || >=0.2.3-0 <0.3.0",
+    "@deepseek-ai/dsh-api-session-controller": ">=0.2.2-rc.2 <0.2.3-0 || >=0.2.3-0 <0.3.0",
+    "@deepseek-ai/dsh-client-connection": ">=0.2.2-rc.2 <0.2.3-0 || >=0.2.3-0 <0.3.0",
+    "@deepseek-ai/dsh-client-ui-commands": ">=0.2.2-rc.2 <0.2.3-0 || >=0.2.3-0 <0.3.0",
+    "@deepseek-ai/dsh-client-ui-conversation": ">=0.2.2-rc.2 <0.2.3-0 || >=0.2.3-0 <0.3.0",
+    "@deepseek-ai/dsh-client-ui-layout": ">=0.2.2-rc.2 <0.2.3-0 || >=0.2.3-0 <0.3.0",
+    "@deepseek-ai/dsh-client-ui-primitives": ">=0.2.2-rc.2 <0.2.3-0 || >=0.2.3-0 <0.3.0",
+    "@deepseek-ai/dsh-client-ui-renderer": ">=0.2.2-rc.2 <0.2.3-0 || >=0.2.3-0 <0.3.0",
+    "@deepseek-ai/dsh-client-ui-settings": ">=0.2.2-rc.2 <0.2.3-0 || >=0.2.3-0 <0.3.0",
+    "@deepseek-ai/dsh-client-ui-sidebar": ">=0.2.2-rc.2 <0.2.3-0 || >=0.2.3-0 <0.3.0",
+    "@deepseek-ai/dsh-client-ui-sidebar-right": ">=0.2.2-rc.2 <0.2.3-0 || >=0.2.3-0 <0.3.0",
+    "@deepseek-ai/dsh-client-ui-slots": ">=0.2.2-rc.2 <0.2.3-0 || >=0.2.3-0 <0.3.0",
+    "@deepseek-ai/dsh-client-ui-workspace": ">=0.2.2-rc.2 <0.2.3-0 || >=0.2.3-0 <0.3.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "4.1.0",
+    "@deepseek-ai/dsh-api-remotes": "0.2.2-rc.2",
+    "@deepseek-ai/dsh-api-session-controller": "0.2.2-rc.2",
+    "@deepseek-ai/dsh-client-connection": "0.2.2-rc.2",
+    "@deepseek-ai/dsh-client-ui-commands": "0.2.2-rc.2",
+    "@deepseek-ai/dsh-client-ui-conversation": "0.2.2-rc.2",
+    "@deepseek-ai/dsh-client-ui-layout": "0.2.2-rc.2",
+    "@deepseek-ai/dsh-client-ui-primitives": "0.2.2-rc.2",
+    "@deepseek-ai/dsh-client-ui-renderer": "0.2.2-rc.2",
+    "@deepseek-ai/dsh-client-ui-settings": "0.2.2-rc.2",
+    "@deepseek-ai/dsh-client-ui-sidebar": "0.2.2-rc.2",
+    "@deepseek-ai/dsh-client-ui-sidebar-right": "0.2.2-rc.2",
+    "@deepseek-ai/dsh-client-ui-slots": "0.2.2-rc.2",
+    "@deepseek-ai/dsh-client-ui-workspace": "0.2.2-rc.2"
+  }
+}

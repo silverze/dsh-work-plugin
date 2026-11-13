@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="300" viewBox="0 0 640 300">
+  <!-- Goal bubble -->
+  <rect x="55" y="115" width="110" height="70" rx="18" fill="#247bbf"/>
+  <rect x="75" y="133" width="70" height="9" rx="4.5" fill="#ffffff"/>
+  <rect x="75" y="150" width="46" height="9" rx="4.5" fill="#9ecde8"/>
+  <!-- Arrow 1 -->
+  <path d="M173 150h25" stroke="#247bbf" stroke-width="5" stroke-linecap="round"/>
+  <path d="M191 141l10 9-10 9" stroke="#247bbf" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Task card with check and progress -->
+  <rect x="215" y="95" width="120" height="110" rx="14" fill="#1b5e8f"/>
+  <path d="M235 125l7 7 12-13" fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="265" y="115" width="55" height="9" rx="4.5" fill="#ffffff"/>
+  <rect x="235" y="152" width="85" height="9" rx="4.5" fill="#9ecde8"/>
+  <rect x="235" y="170" width="60" height="9" rx="4.5" fill="#9ecde8"/>
+  <!-- Arrow 2 -->
+  <path d="M343 150h25" stroke="#247bbf" stroke-width="5" stroke-linecap="round"/>
+  <path d="M361 141l10 9-10 9" stroke="#247bbf" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Deliverable documents -->
+  <rect x="385" y="108" width="60" height="86" rx="8" fill="#9ecde8"/>
+  <rect x="412" y="96" width="60" height="86" rx="8" fill="#247bbf"/>
+  <rect x="439" y="110" width="60" height="86" rx="8" fill="#1b5e8f"/>
+  <rect x="452" y="128" width="34" height="7" rx="3.5" fill="#ffffff"/>
+  <rect x="452" y="142" width="34" height="7" rx="3.5" fill="#ffffff"/>
+  <rect x="452" y="156" width="22" height="7" rx="3.5" fill="#9ecde8"/>
+  <!-- Arrow 3 -->
+  <path d="M507 150h25" stroke="#247bbf" stroke-width="5" stroke-linecap="round"/>
+  <path d="M525 141l10 9-10 9" stroke="#247bbf" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Share to Feishu (paper plane) -->
+  <path d="M549.6 173.3 597.9 152.6 549.6 131.9v16.1l34.5 4.6-34.5 4.6z" fill="#247bbf"/>
+</svg>

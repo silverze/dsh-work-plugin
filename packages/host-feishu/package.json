@@ -1,0 +1,74 @@
+{
+  "name": "@dsh-work-plug/feishu",
+  "version": "0.1.0",
+  "description": "Feishu (Lark) OAuth, OpenAPI client, and model-facing tools for DSH Work.",
+  "license": "MIT",
+  "author": "silverze",
+  "homepage": "https://github.com/silverze/dsh-work-plug#readme",
+  "bugs": {
+    "url": "https://github.com/silverze/dsh-work-plug/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/silverze/dsh-work-plug.git",
+    "directory": "packages/host-feishu"
+  },
+  "keywords": [
+    "dsh-plugin",
+    "dsh",
+    "feishu",
+    "lark",
+    "openapi"
+  ],
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./client": {
+      "types": "./lib/client.d.ts",
+      "default": "./lib/client.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "lib",
+    "locale/*.json",
+    "icon.svg",
+    "README.md"
+  ],
+  "icon": "./icon.svg",
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=22",
+    "dsh": ">=0.2.2-rc.2 <0.3.0"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.1.0",
+    "@deepseek-ai/dsh-credentials": ">=0.2.2-rc.2 <0.2.3-0 || >=0.2.3-0 <0.3.0",
+    "@deepseek-ai/dsh-llm": ">=0.2.2-rc.2 <0.2.3-0 || >=0.2.3-0 <0.3.0",
+    "@deepseek-ai/dsh-tools": ">=0.2.2-rc.2 <0.2.3-0 || >=0.2.3-0 <0.3.0",
+    "@deepseek-ai/dsh-typert-protocol": ">=0.2.2-rc.2 <0.2.3-0 || >=0.2.3-0 <0.3.0",
+    "@deepseek-ai/dsh-user-approval": ">=0.2.2-rc.2 <0.2.3-0 || >=0.2.3-0 <0.3.0"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "4.1.0",
+    "@deepseek-ai/dsh-credentials": "0.2.2-rc.2",
+    "@deepseek-ai/dsh-llm": "0.2.2-rc.2",
+    "@deepseek-ai/dsh-tools": "0.2.2-rc.2",
+    "@deepseek-ai/dsh-typert-protocol": "0.2.2-rc.2",
+    "@deepseek-ai/dsh-user-approval": "0.2.2-rc.2"
+  }
+}

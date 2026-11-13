@@ -1,0 +1,21 @@
+# @dsh-work-plug/bundle — bundle layer for the `work` profile.
+#
+# The patch inserts the host services, the Feishu tools, the web client
+# plugins and the bundled skills into the profile. Every row id is stable
+# identity: later profile layers and the user cordis.patch.yml target these
+# ids, so they do not follow the npm scope.
+#
+- insert:
+    - id: dsh-work-bundle
+      name: '@dsh-work-plug/bundle'
+    - id: dsh-work-host
+      name: '@dsh-work-plug/host'
+    - id: dsh-work-client
+      name: '@dsh-work-plug/client'
+    - id: dsh-work-feishu
+      name: '@dsh-work-plug/feishu'
+      config:
+        accessTokenEnv: FEISHU_USER_ACCESS_TOKEN
+
+    - id: work-skills
+      name: '@dsh-work-plug/skills'

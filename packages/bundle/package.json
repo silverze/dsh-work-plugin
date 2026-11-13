@@ -1,0 +1,67 @@
+{
+  "name": "@dsh-work-plug/bundle",
+  "version": "0.1.0",
+  "description": "DSH Work bundle: composes the work profile with task services, Feishu tools, the workbench client panel, and bundled work skills.",
+  "license": "MIT",
+  "author": "silverze",
+  "homepage": "https://github.com/silverze/dsh-work-plug#readme",
+  "bugs": {
+    "url": "https://github.com/silverze/dsh-work-plug/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/silverze/dsh-work-plug.git",
+    "directory": "packages/bundle"
+  },
+  "keywords": [
+    "dsh-plugin",
+    "dsh",
+    "deepseek-harness",
+    "work",
+    "workbench",
+    "feishu"
+  ],
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "cordis.patch.yml",
+    "presets",
+    "locale/*.json",
+    "docs",
+    "icon.svg",
+    "README.md"
+  ],
+  "icon": "./icon.svg",
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=22",
+    "dsh": ">=0.2.2-rc.2 <0.3.0"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": [
+        "./cordis.patch.yml",
+        "./presets/work.patch.yml"
+      ]
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.1.0"
+  },
+  "dependencies": {
+    "@dsh-work-plug/client": "workspace:^",
+    "@dsh-work-plug/host": "workspace:^",
+    "@dsh-work-plug/feishu": "workspace:^",
+    "@dsh-work-plug/skills": "workspace:^"
+  }
+}

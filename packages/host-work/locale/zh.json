@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "工作任务服务",
+    "description": "提供工作任务领域服务：任务状态、成果库、轮次边界索引、/work 命令与 work_* 工具。由 DSH Work bundle 安装。"
+  }
+}
