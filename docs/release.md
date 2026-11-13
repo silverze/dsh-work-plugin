@@ -51,7 +51,11 @@ Always publish with **pnpm**, never with `npm publish`: pnpm rewrites the
 fails with `EUNSUPPORTEDPROTOCOL Unsupported URL Type "workspace:"`.
 
 Or push a `v*` tag and let `.github/workflows/release.yml` publish all five with
-provenance (`id-token: write`, `NPM_TOKEN` secret).
+provenance (`id-token: write`, `NPM_TOKEN` secret). Without that secret the job
+stays green and skips publishing; the other option is to configure a trusted
+publisher for each `@dsh-work-plug/*` package on npmjs.com
+(Package settings → Trusted publishing → GitHub Actions, workflow
+`release.yml`), after which no token is needed.
 
 Verify:
 
