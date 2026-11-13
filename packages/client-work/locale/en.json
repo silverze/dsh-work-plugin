@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Work workbench panel",
+    "description": "Adds the work workbench to the web UI: work mode entry in the conversation, the right-sidebar panel with the current task, artifact library and schedules, and the Feishu settings section. Installed by the DSH Work bundle."
+  }
+}

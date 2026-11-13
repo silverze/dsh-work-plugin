@@ -1,0 +1,48 @@
+{
+  "name": "dsh-work-plug-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Monorepo for DSH Work: a work-task product layer for DeepSeek Harness with Feishu integration.",
+  "packageManager": "pnpm@11.28.5",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "pnpm -r --if-present build",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "test": "pnpm --filter @dsh-work-plug/host build && pnpm --filter @dsh-work-plug/client build && pnpm --filter @dsh-work-plug/feishu build && node --test tests/unit/*.test.mjs",
+    "test:e2e": "node --test tests/e2e/*.test.mjs",
+    "verify:hello": "node scripts/verify-hello.mjs",
+    "check:yaml": "node scripts/check-yaml.mjs",
+    "check:publish": "node scripts/check-publish.mjs",
+    "publish:dry": "node scripts/publish-dry-run.mjs",
+    "test:coverage": "node --test --experimental-test-coverage tests/unit/*.test.mjs",
+    "check:public": "node scripts/check-public.mjs",
+    "docs:check": "node scripts/check-docs.mjs",
+    "release": "pnpm -r publish --access public --no-git-checks",
+    "pack": "pnpm -C packages/skills pack && pnpm -C packages/host-feishu pack && pnpm -C packages/host-work pack && pnpm -C packages/client-work pack && pnpm -C packages/bundle pack"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "tsdown": "^0.23.7",
+    "typescript": "^5.9.0",
+    "vitest": "^5.1.0",
+    "yaml": "^2.9.1",
+    "playwright-core": "^1.55.0"
+  },
+  "license": "MIT",
+  "author": "silverze",
+  "homepage": "https://github.com/silverze/dsh-work-plug#readme",
+  "bugs": {
+    "url": "https://github.com/silverze/dsh-work-plug/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/silverze/dsh-work-plug.git"
+  }
+}

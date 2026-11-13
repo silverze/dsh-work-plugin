@@ -1,0 +1,14 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      deepseek-harness:
+        patterns:
+          - "@deepseek-ai/*"
+    ignore:
+      - dependency-name: "@deepseek-ai/*"
+        update-types: ["version-update:semver-minor", "version-update:semver-major"]

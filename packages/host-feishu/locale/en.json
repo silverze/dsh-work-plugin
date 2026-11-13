@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Feishu connector",
+    "description": "Feishu (Lark) OAuth and OpenAPI tools for documents, sheets, wiki, messaging, and sharing. Reads the user access token from the environment variable named by the row's accessTokenEnv config. Installed by the DSH Work bundle."
+  }
+}

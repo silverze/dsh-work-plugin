@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96" role="img" aria-label="DSH Work">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2a2d34"/>
+      <stop offset="1" stop-color="#16181d"/>
+    </linearGradient>
+  </defs>
+  <rect width="96" height="96" rx="22" fill="url(#g)"/>
+  <rect x="26" y="30" width="30" height="7" rx="3.5" fill="#f5f6f7"/>
+  <rect x="26" y="45" width="20" height="7" rx="3.5" fill="#f5f6f7"/>
+  <rect x="26" y="60" width="26" height="7" rx="3.5" fill="#3f6ef5"/>
+  <circle cx="66" cy="63.5" r="6" fill="#3f6ef5"/>
+  <path d="M63.4 63.6l1.9 1.9 3.4-3.8" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

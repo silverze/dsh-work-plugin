@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Work tasks service",
+    "description": "Provides the work task domain: task state, artifact library, turn-boundary indexing, the /work command, and the work_* tools. Installed by the DSH Work bundle."
+  }
+}

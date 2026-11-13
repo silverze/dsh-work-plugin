@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "DSH Work",
+    "description": "Turn a stated goal into a tracked work task: plan and execute with tools, collect deliverables in the artifact library, run work on a schedule, and share results to Feishu docs. Adds the work agent preset, the right-sidebar workbench panel (current task, artifacts, schedules), the work_* and Feishu tools, and seven bundled work skills. Feishu tools need a user access token in the environment variable named by the row's accessTokenEnv config. Turning the bundle off removes the panel, tools, skills, and preset; task data stays in the work storage domain.",
+    "detail": "docs/DETAIL.md"
+  }
+}
