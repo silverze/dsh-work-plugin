@@ -6,6 +6,13 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-13
+
+### Fixed
+
+- The published bundle now depends on concrete `^0.1.0` ranges instead of the
+  `workspace:^` protocol, which npm cannot install.
+
 ## [0.1.0] - 2026-11-13
 
 ### Added

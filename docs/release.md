@@ -45,6 +45,11 @@ pnpm -C packages/client-work publish --access public
 pnpm -C packages/bundle publish --access public
 ```
 
+Always publish with **pnpm**, never with `npm publish`: pnpm rewrites the
+`workspace:^` protocols in `packages/bundle/package.json` into concrete
+`^<version>` ranges, while `npm publish` ships them verbatim and every install
+fails with `EUNSUPPORTEDPROTOCOL Unsupported URL Type "workspace:"`.
+
 Or push a `v*` tag and let `.github/workflows/release.yml` publish all five with
 provenance (`id-token: write`, `NPM_TOKEN` secret).
 
