@@ -29,7 +29,7 @@
         Feishu OpenAPI                 模型 / Web / Office
 ```
 
-- **安装**：`dsh plugin add ./packages/bundle`（或 npm 上的 `@dsh-work-plugin/bundle`），重启后生效。
+- **安装**：`dsh plugin add @dsh-work-plugin/bundle`（或源码里的 `./scripts/install-work-profile.sh work dist`），重启后生效。
 - **开发**：改 `packages/host-*` 后重启 DSH；改 `packages/client-work` 后刷新页面即可（客户端 bundle 由 app 重新加载）。
 - **桌面 / Web**：同一 bundle 同时适用于 `dsh web` 与桌面壳。
 
