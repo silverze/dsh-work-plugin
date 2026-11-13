@@ -1,5 +1,5 @@
 /**
- * @dsh-work-plug/feishu — Feishu tools.
+ * @dsh-work-plugin/feishu — Feishu tools.
  *
  * Token source: the environment variable named by `accessTokenEnv`
  * (default `FEISHU_USER_ACCESS_TOKEN`); the OAuth flow + credentials store

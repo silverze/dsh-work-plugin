@@ -1,16 +1,16 @@
 {
-  "name": "@dsh-work-plug/feishu",
+  "name": "@dsh-work-plugin/feishu",
   "version": "0.1.0",
   "description": "Feishu (Lark) OAuth, OpenAPI client, and model-facing tools for DSH Work.",
   "license": "MIT",
   "author": "silverze",
-  "homepage": "https://github.com/silverze/dsh-work-plug#readme",
+  "homepage": "https://github.com/silverze/dsh-work-plugin#readme",
   "bugs": {
-    "url": "https://github.com/silverze/dsh-work-plug/issues"
+    "url": "https://github.com/silverze/dsh-work-plugin/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/silverze/dsh-work-plug.git",
+    "url": "git+https://github.com/silverze/dsh-work-plugin.git",
     "directory": "packages/host-feishu"
   },
   "keywords": [

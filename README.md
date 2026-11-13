@@ -8,8 +8,8 @@
 
 [English](README.md) · [中文](README.zh.md)
 
-[![npm](https://img.shields.io/npm/v/@dsh-work-plug/bundle?color=cb3837&label=npm)](https://www.npmjs.com/package/@dsh-work-plug/bundle)
-[![CI](https://github.com/silverze/dsh-work-plug/actions/workflows/ci.yml/badge.svg)](https://github.com/silverze/dsh-work-plug/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/@dsh-work-plugin/bundle?color=cb3837&label=npm)](https://www.npmjs.com/package/@dsh-work-plugin/bundle)
+[![CI](https://github.com/silverze/dsh-work-plugin/actions/workflows/ci.yml/badge.svg)](https://github.com/silverze/dsh-work-plugin/actions/workflows/ci.yml)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![node](https://img.shields.io/badge/node-%3E%3D22-339933.svg)](https://nodejs.org)
 [![dsh](https://img.shields.io/badge/dsh-%3E%3D0.2.2--rc.2-4f46e5.svg)](https://github.com/deepseek-ai)
@@ -38,14 +38,14 @@ Open **Settings → Plugins**, search for **DSH Work**, click **Install**, then 
 ### CLI / headless
 
 ```bash
-dsh plugin add @dsh-work-plug/bundle
+dsh plugin add @dsh-work-plugin/bundle
 # restart DeepSeek Harness afterwards
 ```
 
 ### From source
 
 ```bash
-git clone https://github.com/silverze/dsh-work-plug.git
+git clone https://github.com/silverze/dsh-work-plugin.git
 cd dsh-work
 pnpm install
 pnpm build

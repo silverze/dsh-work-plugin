@@ -1,16 +1,16 @@
 {
-  "name": "@dsh-work-plug/bundle",
+  "name": "@dsh-work-plugin/bundle",
   "version": "0.1.1",
   "description": "DSH Work bundle: composes the work profile with task services, Feishu tools, the workbench client panel, and bundled work skills.",
   "license": "MIT",
   "author": "silverze",
-  "homepage": "https://github.com/silverze/dsh-work-plug#readme",
+  "homepage": "https://github.com/silverze/dsh-work-plugin#readme",
   "bugs": {
-    "url": "https://github.com/silverze/dsh-work-plug/issues"
+    "url": "https://github.com/silverze/dsh-work-plugin/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/silverze/dsh-work-plug.git",
+    "url": "git+https://github.com/silverze/dsh-work-plugin.git",
     "directory": "packages/bundle"
   },
   "keywords": [
@@ -59,9 +59,9 @@
     "@deepseek-ai/cordis": "~4.1.0"
   },
   "dependencies": {
-    "@dsh-work-plug/client": "workspace:^",
-    "@dsh-work-plug/host": "workspace:^",
-    "@dsh-work-plug/feishu": "workspace:^",
-    "@dsh-work-plug/skills": "workspace:^"
+    "@dsh-work-plugin/client": "workspace:^",
+    "@dsh-work-plugin/host": "workspace:^",
+    "@dsh-work-plugin/feishu": "workspace:^",
+    "@dsh-work-plugin/skills": "workspace:^"
   }
 }

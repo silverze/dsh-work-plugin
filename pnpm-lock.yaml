@@ -44,16 +44,16 @@ importers:
       '@deepseek-ai/cordis':
         specifier: ~4.1.0
         version: 4.1.0(@deepseek-ai/cordis-plugin-include@1.1.0)(@deepseek-ai/cordis-plugin-loader@1.1.0)
-      '@dsh-work-plug/client':
+      '@dsh-work-plugin/client':
         specifier: workspace:^
         version: link:../client-work
-      '@dsh-work-plug/feishu':
+      '@dsh-work-plugin/feishu':
         specifier: workspace:^
         version: link:../host-feishu
-      '@dsh-work-plug/host':
+      '@dsh-work-plugin/host':
         specifier: workspace:^
         version: link:../host-work
-      '@dsh-work-plug/skills':
+      '@dsh-work-plugin/skills':
         specifier: workspace:^
         version: link:../skills-work
 

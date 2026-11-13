@@ -1,16 +1,16 @@
 {
-  "name": "@dsh-work-plug/host",
+  "name": "@dsh-work-plugin/host",
   "version": "0.1.0",
   "description": "DSH Work host services: work tasks, artifact library, schedule binding, and notifications.",
   "license": "MIT",
   "author": "silverze",
-  "homepage": "https://github.com/silverze/dsh-work-plug#readme",
+  "homepage": "https://github.com/silverze/dsh-work-plugin#readme",
   "bugs": {
-    "url": "https://github.com/silverze/dsh-work-plug/issues"
+    "url": "https://github.com/silverze/dsh-work-plugin/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/silverze/dsh-work-plug.git",
+    "url": "git+https://github.com/silverze/dsh-work-plugin.git",
     "directory": "packages/host-work"
   },
   "keywords": [

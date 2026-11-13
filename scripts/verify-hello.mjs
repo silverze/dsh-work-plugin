@@ -15,7 +15,7 @@ const patch = readFileSync(patchPath, 'utf8')
 
 if (name !== 'dsh-work') throw new Error(`unexpected plugin name: ${name}`)
 if (typeof apply !== 'function') throw new Error('apply must be a function')
-if (!patch.includes("name: '@dsh-work-plug/bundle'")) throw new Error('patch does not insert the bundle row')
+if (!patch.includes("name: '@dsh-work-plugin/bundle'")) throw new Error('patch does not insert the bundle row')
 
 const logs = []
 const effects = []

@@ -21,10 +21,10 @@ const distDir = join(root, 'dist')
 const stageDir = join(distDir, 'bundle-stage')
 
 const packages = [
-  ['@dsh-work-plug/host', join(root, 'packages', 'host-work')],
-  ['@dsh-work-plug/feishu', join(root, 'packages', 'host-feishu')],
-  ['@dsh-work-plug/client', join(root, 'packages', 'client-work')],
-  ['@dsh-work-plug/skills', join(root, 'packages', 'skills-work')],
+  ['@dsh-work-plugin/host', join(root, 'packages', 'host-work')],
+  ['@dsh-work-plugin/feishu', join(root, 'packages', 'host-feishu')],
+  ['@dsh-work-plugin/client', join(root, 'packages', 'client-work')],
+  ['@dsh-work-plugin/skills', join(root, 'packages', 'skills-work')],
 ]
 
 function pnpm(args, cwd = root) {

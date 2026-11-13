@@ -39,7 +39,7 @@ the repository's `SECURITY.md`.
 ## Install
 
 ```bash
-dsh plugin add @dsh-work-plug/bundle
+dsh plugin add @dsh-work-plugin/bundle
 ```
 
 or **Settings → Plugins → search “DSH Work”** in the desktop app, then restart.

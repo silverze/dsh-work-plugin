@@ -37,10 +37,10 @@ for (const pkg of packages) {
   delete manifest.private
   if (pkg.dir === 'bundle') {
     manifest.dependencies = {
-      '@dsh-work-plug/host': '0.1.0',
-      '@dsh-work-plug/feishu': '0.1.0',
-      '@dsh-work-plug/client': '0.1.0',
-      '@dsh-work-plug/skills': '0.1.0',
+      '@dsh-work-plugin/host': '0.1.0',
+      '@dsh-work-plugin/feishu': '0.1.0',
+      '@dsh-work-plugin/client': '0.1.0',
+      '@dsh-work-plugin/skills': '0.1.0',
     }
   }
   await writeFile(join(target, 'package.json'), JSON.stringify(manifest, null, 2) + '\n')

@@ -1,16 +1,16 @@
 {
-  "name": "@dsh-work-plug/skills",
+  "name": "@dsh-work-plugin/skills",
   "version": "0.1.0",
   "description": "Bundled work skills provider for DSH Work: research, weekly report, meeting minutes, data analysis, presentation deck, and document polish.",
   "license": "MIT",
   "author": "silverze",
-  "homepage": "https://github.com/silverze/dsh-work-plug#readme",
+  "homepage": "https://github.com/silverze/dsh-work-plugin#readme",
   "bugs": {
-    "url": "https://github.com/silverze/dsh-work-plug/issues"
+    "url": "https://github.com/silverze/dsh-work-plugin/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/silverze/dsh-work-plug.git",
+    "url": "git+https://github.com/silverze/dsh-work-plugin.git",
     "directory": "packages/skills-work"
   },
   "keywords": [

@@ -48,7 +48,7 @@ const manifest = JSON.parse(fs.readFileSync(file, 'utf8'))
 manifest.dsh ??= { profile: { bundles: [] } }
 manifest.dsh.profile ??= { bundles: [] }
 const bundles = manifest.dsh.profile.bundles ??= []
-const ordered = ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app', '@dsh-work-plug/bundle']
+const ordered = ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app', '@dsh-work-plugin/bundle']
 const rest = bundles.filter((name) => !ordered.includes(name))
 manifest.dsh.profile.bundles = [...ordered, ...rest]
 fs.writeFileSync(file, JSON.stringify(manifest, null, 2) + '\n')

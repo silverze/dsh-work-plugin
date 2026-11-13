@@ -76,7 +76,7 @@ test('disposing the effect logs the disposal exactly once', () => {
 test('bundle patch inserts the package row', () => {
   const patch = readFileSync(join(root, 'packages', 'bundle', 'cordis.patch.yml'), 'utf8')
   assert.match(patch, /- insert:/)
-  assert.match(patch, /name: '@dsh-work-plug\/bundle'/)
+  assert.match(patch, /name: '@dsh-work-plugin\/bundle'/)
 })
 
 test('every skill has frontmatter with name and description', () => {

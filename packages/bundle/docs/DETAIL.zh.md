@@ -27,7 +27,7 @@ OCR 只在本机执行，文本只进入当前会话，插件不上传任何内�
 ## 安装
 
 ```bash
-dsh plugin add @dsh-work-plug/bundle
+dsh plugin add @dsh-work-plugin/bundle
 ```
 
 或在桌面端 **设置 → 插件** 搜索「DSH Work」后安装，然后重启。
