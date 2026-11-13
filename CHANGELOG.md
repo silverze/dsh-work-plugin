@@ -33,5 +33,5 @@ All notable changes to this project are documented here. The format follows
 - Seven bundled work skills: research, weekly report, meeting minutes, data
   analysis, presentation deck, document polish and screen awareness.
 
-[Unreleased]: https://github.com/silverze/dsh-work-plug/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/silverze/dsh-work-plug/releases/tag/v0.1.0
+[Unreleased]: https://github.com/silverze/dsh-work-plugin/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/silverze/dsh-work-plugin/releases/tag/v0.1.0

@@ -1,5 +1,5 @@
 /**
- * @dsh-work-plug/skills — bundled provider for the six DSH Work skills.
+ * @dsh-work-plugin/skills — bundled provider for the six DSH Work skills.
  *
  * Registers the skills on `ctx.skills` directly, anchoring every path at
  * `import.meta.url` (the same pattern as the official bundled-skill

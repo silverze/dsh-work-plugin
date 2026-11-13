@@ -1,5 +1,5 @@
 /**
- * @dsh-work-plug/host — work task host plugin.
+ * @dsh-work-plugin/host — work task host plugin.
  *
  * Opens the `work` storage domain, provides `ctx.workTasks`, and registers the
  * model-facing Work tools. The client Remote namespace arrives in W1.5; for

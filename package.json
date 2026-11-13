@@ -1,5 +1,5 @@
 {
-  "name": "dsh-work-plug-monorepo",
+  "name": "dsh-work-plugin-monorepo",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -11,7 +11,7 @@
   "scripts": {
     "build": "pnpm -r --if-present build",
     "typecheck": "pnpm -r --if-present typecheck",
-    "test": "pnpm --filter @dsh-work-plug/host build && pnpm --filter @dsh-work-plug/client build && pnpm --filter @dsh-work-plug/feishu build && node --test tests/unit/*.test.mjs",
+    "test": "pnpm --filter @dsh-work-plugin/host build && pnpm --filter @dsh-work-plugin/client build && pnpm --filter @dsh-work-plugin/feishu build && node --test tests/unit/*.test.mjs",
     "test:e2e": "node --test tests/e2e/*.test.mjs",
     "verify:hello": "node scripts/verify-hello.mjs",
     "check:yaml": "node scripts/check-yaml.mjs",
@@ -37,12 +37,12 @@
   },
   "license": "MIT",
   "author": "silverze",
-  "homepage": "https://github.com/silverze/dsh-work-plug#readme",
+  "homepage": "https://github.com/silverze/dsh-work-plugin#readme",
   "bugs": {
-    "url": "https://github.com/silverze/dsh-work-plug/issues"
+    "url": "https://github.com/silverze/dsh-work-plugin/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/silverze/dsh-work-plug.git"
+    "url": "git+https://github.com/silverze/dsh-work-plugin.git"
   }
 }

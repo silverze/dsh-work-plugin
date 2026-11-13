@@ -1,5 +1,5 @@
 /**
- * @dsh-work-plug/bundle — the bundle entry of the work profile.
+ * @dsh-work-plugin/bundle — the bundle entry of the work profile.
  *
  * The patch in `cordis.patch.yml` inserts the host services, the Feishu tools,
  * the web client plugins and the bundled skills. This file itself stays

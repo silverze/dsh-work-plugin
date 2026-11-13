@@ -20,10 +20,10 @@ plugins installed into an unmodified DSH.
 
 **Do not fork the DSH kernel.** Ship a separate repository with:
 
-1. `@dsh-work-plug/bundle` — a bundle (profile patch layer) that composes the rest.
-2. `@dsh-work-plug/host` / `@dsh-work-plug/feishu` — host plugins (services and model tools).
-3. `@dsh-work-plug/client` — web client plugins (`dsh.client`, React 18).
-4. `@dsh-work-plug/skills` — a bundled skill provider.
+1. `@dsh-work-plugin/bundle` — a bundle (profile patch layer) that composes the rest.
+2. `@dsh-work-plugin/host` / `@dsh-work-plugin/feishu` — host plugins (services and model tools).
+3. `@dsh-work-plugin/client` — web client plugins (`dsh.client`, React 18).
+4. `@dsh-work-plugin/skills` — a bundled skill provider.
 5. A `work` agent preset delivered by the bundle.
 
 If a capability genuinely requires changing session events, permission hooks, or

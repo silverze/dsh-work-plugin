@@ -1,16 +1,16 @@
 {
-  "name": "@dsh-work-plug/client",
+  "name": "@dsh-work-plugin/client",
   "version": "0.1.0",
   "description": "DSH Work client plugins: workbench panel, artifact library, and Feishu settings for the web UI.",
   "license": "MIT",
   "author": "silverze",
-  "homepage": "https://github.com/silverze/dsh-work-plug#readme",
+  "homepage": "https://github.com/silverze/dsh-work-plugin#readme",
   "bugs": {
-    "url": "https://github.com/silverze/dsh-work-plug/issues"
+    "url": "https://github.com/silverze/dsh-work-plugin/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/silverze/dsh-work-plug.git",
+    "url": "git+https://github.com/silverze/dsh-work-plugin.git",
     "directory": "packages/client-work"
   },
   "keywords": [

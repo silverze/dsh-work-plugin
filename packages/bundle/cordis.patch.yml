@@ -1,4 +1,4 @@
-# @dsh-work-plug/bundle — bundle layer for the `work` profile.
+# @dsh-work-plugin/bundle — bundle layer for the `work` profile.
 #
 # The patch inserts the host services, the Feishu tools, the web client
 # plugins and the bundled skills into the profile. Every row id is stable
@@ -7,15 +7,15 @@
 #
 - insert:
     - id: dsh-work-bundle
-      name: '@dsh-work-plug/bundle'
+      name: '@dsh-work-plugin/bundle'
     - id: dsh-work-host
-      name: '@dsh-work-plug/host'
+      name: '@dsh-work-plugin/host'
     - id: dsh-work-client
-      name: '@dsh-work-plug/client'
+      name: '@dsh-work-plugin/client'
     - id: dsh-work-feishu
-      name: '@dsh-work-plug/feishu'
+      name: '@dsh-work-plugin/feishu'
       config:
         accessTokenEnv: FEISHU_USER_ACCESS_TOKEN
 
     - id: work-skills
-      name: '@dsh-work-plug/skills'
+      name: '@dsh-work-plugin/skills'

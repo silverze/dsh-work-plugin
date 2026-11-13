@@ -69,7 +69,7 @@ for (const file of PUBLISHABLE) {
   const pkg = JSON.parse(readFileSync(file, 'utf8'))
   if (pkg.private === true) problems.push(`${file}: 发布包不能 private`)
   if (pkg.license !== 'MIT') problems.push(`${file}: license 必须是 MIT`)
-  if (!pkg.repository?.url?.includes('github.com/silverze/dsh-work-plug')) problems.push(`${file}: repository 缺失或不是公开仓库`)
+  if (!pkg.repository?.url?.includes('github.com/silverze/dsh-work-plugin')) problems.push(`${file}: repository 缺失或不是公开仓库`)
   if (!pkg.engines?.dsh) problems.push(`${file}: 缺少 engines.dsh`)
   for (const [name, range] of Object.entries(pkg.dependencies ?? {})) {
     if (range.startsWith('file:')) problems.push(`${file}: 依赖 ${name} 仍是 file:`)

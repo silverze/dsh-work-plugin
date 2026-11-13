@@ -38,4 +38,4 @@ jobs:
       - name: Skip notice
         if: ${{ env.NODE_AUTH_TOKEN == '' }}
         run: |
-          echo "::notice::Publishing skipped: set the NPM_TOKEN secret or configure a trusted publisher for @dsh-work-plug/* on npmjs.com."
+          echo "::notice::Publishing skipped: set the NPM_TOKEN secret or configure a trusted publisher for @dsh-work-plugin/* on npmjs.com."

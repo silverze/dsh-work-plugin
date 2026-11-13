@@ -29,7 +29,7 @@
         Feishu OpenAPI                 模型 / Web / Office
 ```
 
-- **安装**：`dsh plugin add ./packages/bundle`（或 npm 上的 `@dsh-work-plug/bundle`），重启后生效。
+- **安装**：`dsh plugin add ./packages/bundle`（或 npm 上的 `@dsh-work-plugin/bundle`），重启后生效。
 - **开发**：改 `packages/host-*` 后重启 DSH；改 `packages/client-work` 后刷新页面即可（客户端 bundle 由 app 重新加载）。
 - **桌面 / Web**：同一 bundle 同时适用于 `dsh web` 与桌面壳。
 
@@ -37,11 +37,11 @@
 
 | 包 | 侧 | 职责 |
 |---|---|---|
-| `@dsh-work-plug/bundle` | bundle | patch 层、profile 入口、默认配置、展示元数据与 detail 文档 |
-| `@dsh-work-plug/host` | host | 任务/成果/定时绑定/通知；`storageDomain` 三表；Remote `work/*` |
-| `@dsh-work-plug/feishu` | host | OAuth、token 刷新、OpenAPI 客户端、14 个工具、频控、审计 |
-| `@dsh-work-plug/client` | client | 工作台、任务详情、成果库、设置卡片 |
-| `@dsh-work-plug/skills` | host | 内置技能 provider：注册 7 个 SKILL.md，路径锚定包内 |
+| `@dsh-work-plugin/bundle` | bundle | patch 层、profile 入口、默认配置、展示元数据与 detail 文档 |
+| `@dsh-work-plugin/host` | host | 任务/成果/定时绑定/通知；`storageDomain` 三表；Remote `work/*` |
+| `@dsh-work-plugin/feishu` | host | OAuth、token 刷新、OpenAPI 客户端、14 个工具、频控、审计 |
+| `@dsh-work-plugin/client` | client | 工作台、任务详情、成果库、设置卡片 |
+| `@dsh-work-plugin/skills` | host | 内置技能 provider：注册 7 个 SKILL.md，路径锚定包内 |
 | `tests/e2e` | test | Mock 飞书 + Playwright |
 
 ## 4. 使用的 DSH 扩展点
@@ -58,7 +58,7 @@
 | 定时任务 | `ctx.schedule` + `dsh-client-ui-schedule` | 复用 RRULE、投递记录、UI |
 | OAuth 交互 | `ctx.authorization.registerFlow` | notice + prompt；凭据写入 `ctx.credentials` |
 | 凭据存储 | `ctx.credentials` | App Secret、user token、refresh token |
-| 技能 | 内置 skill provider：`ctx.skills.registerProvider` | `@dsh-work-plug/skills` 注册 7 个技能；路径锚定 `import.meta.url`，不依赖 cwd |
+| 技能 | 内置 skill provider：`ctx.skills.registerProvider` | `@dsh-work-plugin/skills` 注册 7 个技能；路径锚定 `import.meta.url`，不依赖 cwd |
 | 屏幕/飞书上下文 | 本地 OCR 感知 + 语义解析，AX 兜底 | `native/screen-ocr.swift`（CGWindowList + `screencapture -l` + Vision OCR）由宿主首次使用时用 `swiftc -O` 编译并缓存；`work_screen_text` 读任意窗口文本，`work_feishu_screen` 返回聚焦会话名/群单聊/可见消息（约 1s、几百 token）。飞书网页在 AX 树里几乎为空，深读需 26+ 层，故 `cua` + `work_feishu_focus` 仅作兜底；provider 的 `agentPreset: false` 由 profile patch 覆盖 |
 | 连接器 | `dsh-mcp-client` | 每台 MCP server 一行配置 |
 | 观测 | `dsh-otel` / `dsh-token-meter` | 任务、工具、飞书请求 span；token 用量 |
