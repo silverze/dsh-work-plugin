@@ -16,7 +16,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-14]
+        # macOS runners are not available for this account yet; the Swift
+        # helper is compiled by hand in docs/architecture.md instead.
+        os: [ubuntu-latest]
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
