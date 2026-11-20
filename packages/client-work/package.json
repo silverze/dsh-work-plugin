@@ -1,6 +1,6 @@
 {
   "name": "@dsh-work-plugin/client",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "DSH Work client plugins: workbench panel, artifact library, and Feishu settings for the web UI.",
   "license": "MIT",
   "author": "silverze",

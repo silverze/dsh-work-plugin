@@ -16,6 +16,11 @@ DSH_HOME="${DSH_HOME:-$HOME/.dsh}"
 PROFILE_DIR="$DSH_HOME/profiles/$PROFILE"
 
 VERSION="$(node -p "require('./packages/bundle/package.json').version")"
+# The runtime pins its own bundle versions: installing a dsh-web-app that does
+# not match the running dsh is rejected as incompatible. Follow the runtime, and
+# let DSH_WEB_APP override it (for a runtime that ships no matching release).
+DSH_VERSION="$("$DSH_BIN" --version 2>/dev/null | tr -d '[:space:]')"
+WEB_APP="${DSH_WEB_APP:-@deepseek-ai/dsh-web-app@$DSH_VERSION}"
 TARBALL="dsh-work-plugin-bundle-$VERSION.tgz"
 [ -f "$DIST/$TARBALL" ] || { echo "missing $DIST/$TARBALL; run: pnpm --filter './packages/*' pack --pack-destination dist" >&2; exit 1; }
 
@@ -25,7 +30,7 @@ echo "dist:    $DIST"
 
 # 1. Initialize the profile. A clean profile can trip pnpm's ignored-build
 #    guard on koffi; the dependencies are still written, so continue.
-"$DSH_BIN" plugin --profile "$PROFILE" add @deepseek-ai/dsh-web-app@0.2.2-rc.2 || true
+"$DSH_BIN" plugin --profile "$PROFILE" add "$WEB_APP" || true
 
 # 2. Allow the koffi postinstall before retrying.
 if [ -f "$PROFILE_DIR/pnpm-workspace.yaml" ]; then
@@ -34,9 +39,28 @@ if [ -f "$PROFILE_DIR/pnpm-workspace.yaml" ]; then
   fi
 fi
 
+# 2b. Point the bundle's `^<version>` dependencies at the same tarballs. Without
+#     this pnpm resolves them from the registry, so a source install would need
+#     the version to be published first (or silently pick up an older release).
+#     pnpm 11 reads overrides from pnpm-workspace.yaml, not from package.json.
+node - "$PROFILE_DIR/pnpm-workspace.yaml" "$DIST" "$VERSION" <<'NODE'
+const fs = require('node:fs')
+const path = require('node:path')
+const [file, dist, version] = process.argv.slice(2)
+let text = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : ''
+if (/^overrides:/m.test(text)) {
+  console.log('pnpm-workspace.yaml already declares overrides; leaving it as is')
+} else {
+  const rows = ['host', 'feishu', 'client', 'skills'].map(
+    (name) => `  '@dsh-work-plugin/${name}': 'file:${path.join(dist, `dsh-work-plugin-${name}-${version}.tgz`)}'`,
+  )
+  fs.writeFileSync(file, `${text.replace(/\s*$/, '')}\n\noverrides:\n${rows.join('\n')}\n`)
+}
+NODE
+
 # 3. Install the bundle and its plugin packages.
 "$DSH_BIN" plugin --profile "$PROFILE" add \
-  @deepseek-ai/dsh-web-app@0.2.2-rc.2 \
+  "$WEB_APP" \
   "$DIST/dsh-work-plugin-bundle-$VERSION.tgz" \
   "$DIST/dsh-work-plugin-host-$VERSION.tgz" \
   "$DIST/dsh-work-plugin-feishu-$VERSION.tgz" \

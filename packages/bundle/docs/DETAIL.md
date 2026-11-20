@@ -15,19 +15,20 @@ schedule after the conversation ends, and can hand results to Feishu.
 - **Artifact library.** Every deliverable is indexed with size, hash and version,
   and opens from the panel later.
 - **Schedules.** A task can rerun on an RRULE; the host triggers it while DSH runs.
-- **Feishu tools.** 14 model-facing tools for docs, sheets, wiki, IM, drive and
+- **Feishu tools.** 15 model-facing tools for docs, sheets, wiki, IM, drive and
   artifact sharing, using a Feishu user token.
-- **Feishu conversation context (macOS).** A composer chip quotes the Feishu chat
-  currently on screen, follows the focused chat while Feishu is in front, and
-  offers three appearances (DSH default, Codex, Claude).
+- **Feishu conversation context (macOS and Windows 10+).** A composer chip quotes
+  the Feishu chat currently on screen, follows the focused chat while Feishu is in
+  front, and offers three appearances (DSH default, Codex, Claude).
 - **Seven skills.** Research, weekly report, meeting minutes, data analysis, deck,
   document polish and screen awareness.
 
 ## Requirements
 
 - DeepSeek Harness `>= 0.2.2-rc.2 < 0.3.0`
-- macOS 13+ for screen reading (Screen Recording permission, Xcode Command Line
-  Tools for the first compile); Linux and Windows support everything else
+- macOS 13+ (Screen Recording permission, Xcode Command Line Tools for the first
+  compile) or Windows 10+ (no permission prompt, OCR fallback) for screen reading;
+  Linux supports everything else
 - A Feishu self-built app for the Feishu tools
 
 ## Privacy

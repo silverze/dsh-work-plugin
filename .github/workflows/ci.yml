@@ -34,6 +34,7 @@ jobs:
       - run: pnpm test
       - run: pnpm check:public
       - run: pnpm docs:check
+      - run: pnpm check:yaml
       - name: Compile the screen helper (macOS)
         if: runner.os == 'macOS'
         run: swiftc -O packages/host-work/native/screen-ocr.swift -o /tmp/screen-ocr-smoke

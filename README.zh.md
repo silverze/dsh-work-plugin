@@ -118,7 +118,7 @@ CLI 只会链接这一个目录，bundle 依赖的 host、client、飞书、技�
 
 | 键 | 默认值 | 作用 |
 | --- | --- | --- |
-| `accessTokenEnv` | `DSH_FEISHU_USER_ACCESS_TOKEN` | 从哪个环境变量读取飞书用户令牌 |
+| `accessTokenEnv` | `FEISHU_USER_ACCESS_TOKEN` | 从哪个环境变量读取飞书用户令牌 |
 | `presence` | `true` | 宿主侧的屏幕/飞书感知工具与 chip 采集总开关 |
 | `presenceStyle` | `dsh` | chip 外观：`dsh`、`codex`、`claude` |
 

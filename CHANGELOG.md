@@ -6,6 +6,25 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-11-20
+
+### Fixed
+
+- Documentation now matches the shipped behaviour: the Feishu surface exposes 15
+  model-facing tools (not 14), screen reading works on Windows 10+ as well as
+  macOS 13+, and the `accessTokenEnv` default is `FEISHU_USER_ACCESS_TOKEN`.
+- Marketplace entry filename in `docs/release.md` follows the repository name
+  (`silverze__dsh-work-plugin--packages-bundle.yml`), and the marketplace entry
+  itself is documented there.
+- `pnpm check:yaml` no longer fails on `profiles/work/dev.patch.yml.example`, a file
+  that was never checked in (the real `dev.patch.yml` is generated and git-ignored);
+  the check now runs in CI as well.
+- `scripts/install-work-profile.sh` installs the `@deepseek-ai/dsh-web-app` that
+  matches the running runtime (installing rc.2 into rc.5 was rejected as
+  incompatible) and points the bundle's `^<version>` dependencies at the packed
+  tarballs through `overrides` in `pnpm-workspace.yaml`, so a source install no
+  longer needs the version to be on the registry first.
+
 ## [0.2.0] - 2026-11-20
 
 ### Added

@@ -121,7 +121,7 @@ OCR runs locally. The recognized text goes to the current session only; this plu
 
 | Key | Default | Effect |
 | --- | --- | --- |
-| `accessTokenEnv` | `DSH_FEISHU_USER_ACCESS_TOKEN` | Environment variable read for a Feishu user token |
+| `accessTokenEnv` | `FEISHU_USER_ACCESS_TOKEN` | Environment variable read for a Feishu user token |
 | `presence` | `true` | Enables the screen/Feishu awareness tools and chip capture on the host |
 | `presenceStyle` | `dsh` | Chip appearance: `dsh`, `codex` or `claude` |
 

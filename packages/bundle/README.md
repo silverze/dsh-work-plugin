@@ -14,12 +14,12 @@ Installing the bundle also installs its four parts:
 | --- | --- |
 | `@dsh-work-plugin/host` | work tasks, artifacts, schedules, presence tools |
 | `@dsh-work-plugin/client` | workbench panel, composer chip, settings |
-| `@dsh-work-plugin/feishu` | Feishu OAuth and 14 Feishu tools |
+| `@dsh-work-plugin/feishu` | Feishu OAuth and 15 Feishu tools |
 | `@dsh-work-plugin/skills` | seven bundled work skills |
 
 Requires DeepSeek Harness `>= 0.2.2-rc.2 < 0.3.0`. Restart the app after installing.
-The workbench and chip target macOS for screen reading; everything else runs on
-Linux and Windows too.
+The workbench and chip read the screen on macOS 13+ and Windows 10+; the rest also
+runs on Linux.
 
 Documentation, screenshots and the setup guide:
 <https://github.com/silverze/dsh-work-plugin>
