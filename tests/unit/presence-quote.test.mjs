@@ -81,11 +81,17 @@ const task = {
   updatedAt: 0,
 }
 
-function fakeWorkbench({ withTask = true, presence, style = 'dsh' } = {}) {
+function fakeWorkbench({ withTask = true, presence, preset, style = 'dsh' } = {}) {
   const index = new Map(withTask ? [[task.id, task]] : [])
   return {
+    subscribeSessions: () => () => {},
+    sessionPreset: () => preset,
+    isSubagentSession: () => false,
+    ensureWorkTask: async () => {},
     subscribeIndex: () => () => {},
     indexSnapshot: () => index,
+    taskFor: () => index.get(task.id),
+    releasePresetTask: async () => {},
     subscribePresence: () => () => {},
     presenceSnapshot: () => presence,
     refreshPresence: async () => presence,
@@ -156,7 +162,7 @@ test('composer context chip offers a retry when no conversation was found', () =
   assert.match(html, /没有发现运行中的飞书/)
 })
 
-test('one context row above the composer carries the Feishu chip and the mode toggle', () => {
+test('one context row above the composer carries the Feishu chip', () => {
   const html = renderToStaticMarkup(
     React.createElement(ComposerContextRow, {
       sessionId: 's1',
@@ -171,11 +177,10 @@ test('one context row above the composer carries the Feishu chip and the mode to
   assert.match(html, /box-sizing:border-box/)
   assert.match(html, /width:calc\(100% - var\(--dsh-composer-side-clearance, 16px\)/)
   assert.match(html, /群聊｜示例产品群/)
-  assert.match(html, /工作模式 · 开/)
-  assert.ok(html.indexOf('群聊｜示例产品群') < html.indexOf('工作模式 · 开'))
+  assert.doesNotMatch(html, /工作模式/)
 })
 
-test('the context row keeps the mode toggle reachable outside work mode', () => {
+test('the context row has no mode toggle: the native mode picker owns it', () => {
   const html = renderToStaticMarkup(
     React.createElement(ComposerContextRow, {
       sessionId: 's1',
@@ -185,7 +190,7 @@ test('the context row keeps the mode toggle reachable outside work mode', () => 
     }),
   )
   assert.match(html, /data-dsh-work-composer-context/)
-  assert.match(html, /工作模式/)
+  assert.doesNotMatch(html, /工作模式/)
   assert.doesNotMatch(html, /群聊｜/)
 })
 

@@ -2,17 +2,21 @@
  * Context row directly above the composer card.
  *
  * Everything that qualifies the draft lives outside the card: the Feishu
- * conversation the session is following and the work-mode toggle share one row
- * above the input, so the card itself stays the plain DSH composer. DSH renders
+ * conversation the session is following sits on one row above the input, so the
+ * card itself stays the plain DSH composer. DSH renders
  * `conversation.input.dock` entries between the last transcript block and the
  * composer, which is exactly the band the design uses.
+ *
+ * The row also couples the session's `work` agent preset to its WorkTask, so
+ * choosing the preset is enough to start tracking work.
  */
 
 import * as React from 'react'
 
 import type { WorkbenchController } from './controller.js'
 import { FeishuContextChip, type QuoteInserter } from './feishu-context.js'
-import { WorkModeChip, type WorkNotify } from './work-session-ui.js'
+import { useWorkPresetSync } from './work-preset.js'
+import { type WorkNotify } from './work-session-ui.js'
 
 export interface ComposerContextRowProps {
   sessionId: string
@@ -43,6 +47,7 @@ export function ComposerContextRow({
   notify,
   inputActions,
 }: ComposerContextRowProps): React.ReactElement {
+  useWorkPresetSync(sessionId, workbench)
   return (
     <div style={ROW_STYLE} data-dsh-work-composer-context="">
       <FeishuContextChip
@@ -51,7 +56,6 @@ export function ComposerContextRow({
         notify={notify}
         inputActions={inputActions}
       />
-      <WorkModeChip sessionId={sessionId} workbench={workbench} notify={notify} />
     </div>
   )
 }

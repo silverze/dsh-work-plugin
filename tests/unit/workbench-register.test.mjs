@@ -54,13 +54,14 @@ test('client plugin registers native session work surfaces and one Feishu settin
   assert.ok(names.includes('conversation.input.dock'))
   assert.ok(!names.includes('conversation.input.left'))
   assert.ok(!names.includes('conversation.composer.dock'))
+  // Work mode is the native `work` agent preset: no header button, no command.
+  assert.ok(!names.includes('conversation.session.header.actions'))
   assert.ok(names.includes('sidebar.workspaces.session.row.action'))
   assert.ok(names.includes('sidebar.workspaces.session.menu.item'))
-  assert.ok(names.includes('conversation.session.header.actions'))
   assert.ok(names.includes('sidebar.right.pane.tab'))
   assert.ok(names.includes('settings.section'))
 
-  // The Feishu chip and the work-mode toggle share the band above the composer.
+  // The Feishu chip owns the band above the composer.
   const contextRow = registrations.find((entry) => entry.name === 'conversation.input.dock')
   assert.equal(contextRow.id, 'dsh-work-context-row')
   assert.equal(contextRow.order, 10)
@@ -72,6 +73,5 @@ test('client plugin registers native session work surfaces and one Feishu settin
   assert.equal(rightTabs.length, 1)
   assert.equal(rightTabs[0].kind, 'work')
   assert.equal(rightTabs[0].id, 'dsh-work/work')
-  assert.equal(commands.length, 1)
-  assert.equal(commands[0].name, 'work-mode')
+  assert.equal(commands.length, 0)
 })

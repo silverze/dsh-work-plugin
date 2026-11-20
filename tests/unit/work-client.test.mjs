@@ -246,7 +246,7 @@ test('work mode attach/detach/remove/schedulePause map to remotes', async () => 
   await controller.detachSession('s1')
   assert.deepEqual(await controller.removeTask('s1'), { artifacts: 2 })
   await controller.schedulePause('sch1', false)
-  assert.deepEqual(h.calls.find((call) => call.endpoint === 'work/attachSession').payload, { args: { request: { sessionId: 's1' } } })
+  assert.deepEqual(h.calls.find((call) => call.endpoint === 'work/attachSession').payload, { args: { request: { sessionId: 's1', origin: 'manual' } } })
   assert.deepEqual(h.calls.find((call) => call.endpoint === 'work/removeTask').payload, { args: { request: { taskId: 's1', confirm: 'DELETE' } } })
 })
 

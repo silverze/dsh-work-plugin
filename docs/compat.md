@@ -53,7 +53,8 @@ DSH_HOME=/tmp/probe dsh plugin --profile probe add ./packages/bundle
 
 # 3. Boot it and confirm the plugins actually activate
 DSH_HOME=/tmp/probe dsh --profile probe --no-open --port 3199
-#    - the work-mode chip appears above the composer
+#    - the mode picker lists 工作模式 and a new session with it gets a work task
+#    - the Feishu chip appears above the composer once the screen reader is on
 #    - Settings has a "Feishu" section
 #    - the session menu has a work-task entry
 

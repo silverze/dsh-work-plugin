@@ -115,8 +115,17 @@ export class WorkTaskService implements WorkTaskApi {
     return next
   }
 
-  /** Attach the current Session as a work task without submitting a prompt. */
-  async attachSession(sessionId: string): Promise<WorkTask> {
+  /**
+   * Attach the current Session as a work task without submitting a prompt.
+   *
+   * `origin` records who attached it: the `work` agent preset (`preset`) or a
+   * person (`/work`, the session menu). The distinction matters because only
+   * preset-attached drafts come back off when the session leaves the preset.
+   */
+  async attachSession(
+    sessionId: string,
+    origin: 'preset' | 'manual' = 'manual',
+  ): Promise<WorkTask> {
     const existing = await this.get(sessionId)
     if (existing) return existing
     const now = Date.now()
@@ -129,6 +138,7 @@ export class WorkTaskService implements WorkTaskApi {
       status: 'draft',
       workspaceId: '',
       preset: 'work',
+      origin,
       runtime: 'local',
       attachments: [],
       skills: [],
@@ -139,13 +149,17 @@ export class WorkTaskService implements WorkTaskApi {
       updatedAt: now,
     }
     await this.tasks.put(task.id, task)
-    try {
-      await this.ctx.sessionController.rename({
-        sessionId: task.id as never,
-        title: `${WORK_TITLE_PREFIX}${task.title}`,
-      })
-    } catch {
-      // Rename is cosmetic.
+    // A preset-driven attach must not rename the session: switching presets on
+    // a blank session is exploratory, and a "[Work]" title would outlive it.
+    if (origin === 'manual') {
+      try {
+        await this.ctx.sessionController.rename({
+          sessionId: task.id as never,
+          title: `${WORK_TITLE_PREFIX}${task.title}`,
+        })
+      } catch {
+        // Rename is cosmetic.
+      }
     }
     return task
   }
@@ -206,13 +220,18 @@ export class WorkTaskService implements WorkTaskApi {
     }
     await this.tasks.delete(sessionId)
     await rm(task.artifactDir ?? this.artifacts.rootFor(sessionId), { recursive: true, force: true }).catch(() => undefined)
-    try {
-      await this.ctx.sessionController.rename({
-        sessionId: sessionId as never,
-        title: '新会话',
-      })
-    } catch {
-      // Rename is cosmetic.
+    // Only a task this plugin titled needs its placeholder restored: a preset
+    // draft never renamed the session, so whatever title the person gave it
+    // survives the release untouched.
+    if (task.origin !== 'preset' && task.title === '工作任务') {
+      try {
+        await this.ctx.sessionController.rename({
+          sessionId: sessionId as never,
+          title: '新会话',
+        })
+      } catch {
+        // Rename is cosmetic.
+      }
     }
   }
 

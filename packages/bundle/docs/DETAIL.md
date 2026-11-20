@@ -8,8 +8,9 @@ schedule after the conversation ends, and can hand results to Feishu.
 
 ## What it adds
 
-- **Work mode per session.** A chip above the composer attaches the session to a
-  work task; turning it off leaves the default preset and other plugins untouched.
+- **Work mode is a native preset.** Pick it in the mode picker when starting a
+  session and the session attaches to a work task automatically; other sessions
+  and the default preset stay untouched.
 - **Workbench panel.** The right sidebar shows the current task, its artifact
   library and its schedules.
 - **Artifact library.** Every deliverable is indexed with size, hash and version,

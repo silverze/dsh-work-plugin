@@ -24,7 +24,7 @@ It is a plugin bundle, not a fork: when you turn it off, DeepSeek Harness is exa
 
 ## Why DSH Work
 
-- **Work mode, not another preset.** Turn it on for one session; the default preset, other plugins and your settings stay untouched.
+- **Work mode is a preset.** Pick it in the mode picker when starting a session and the session attaches to a tracked work task; other sessions, the default preset and your settings stay untouched.
 - **Deliverables outlive the chat.** Every output is copied into the task's artifact library — docx, pptx, xlsx, images — openable from the panel months later.
 - **Recurring work runs itself.** Attach a schedule (daily report, weekly summary) to a task and let the host trigger it.
 - **Feishu is a first-class surface.** 15 model-facing Feishu tools for docs, sheets, wiki, IM and drive, including full chat history by chat name, and on macOS/Windows a composer chip that quotes the conversation currently on your screen.
@@ -74,7 +74,7 @@ packages the bundle depends on are never installed.
 
 ## Quick start
 
-1. Open a session and click **工作模式 / Work mode** above the composer.
+1. Start a new session and pick **工作模式 / Work mode** in the mode picker.
 2. Describe the outcome you want — *"prepare the Q4 review deck from these three docs"*.
 3. The right panel becomes a workbench: the current task, its plan and its artifact library.
 4. Ask for changes in the same conversation; every output lands in the artifact library.
@@ -84,7 +84,7 @@ packages the bundle depends on are never installed.
 
 ## Feishu conversation context (macOS and Windows)
 
-When work mode is on, a chip appears above the composer with the Feishu chat you were last looking at:
+In a work-mode session, a chip appears above the composer with the Feishu chat you were last looking at:
 
 <img src="assets/screenshot-3.png" alt="Three chip styles: DSH default, Codex, Claude" width="880">
 

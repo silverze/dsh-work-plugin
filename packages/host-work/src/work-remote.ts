@@ -66,8 +66,8 @@ export class WorkRemoteService extends TypertRemoteService {
     return this.service.updateSettings(request)
   }
 
-  async attachSession(request: { sessionId: string }) {
-    return this.service.attachSession(request.sessionId)
+  async attachSession(request: { sessionId: string; origin?: 'preset' | 'manual' }) {
+    return this.service.attachSession(request.sessionId, request.origin === 'preset' ? 'preset' : 'manual')
   }
 
   async detachSession(request: { sessionId: string; confirm: string }) {

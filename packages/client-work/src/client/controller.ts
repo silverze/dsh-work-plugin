@@ -10,12 +10,15 @@ import type {} from '@deepseek-ai/dsh-client-ui-workspace/client'
 
 import { presenceStyle, type PresenceStyle } from './presence-style.js'
 import { callRemote } from './rpc.js'
+import { shouldReleaseDraft } from './work-preset.js'
 
 export interface WorkTaskView {
   id: string
   title: string
   goal: string
   status: string
+  /** `preset` when the `work` agent preset attached it, `manual` otherwise. */
+  origin?: 'preset' | 'manual'
   outputs: string[]
   scheduleId?: string
   notifyChatId?: string
@@ -83,6 +86,28 @@ export interface FeishuPresenceSnapshot extends FeishuPresenceEntry {
 export interface WorkCapabilities {
   /** Screen/Feishu awareness: available on the macOS and Windows Hosts. */
   presence: boolean
+}
+
+/**
+ * The slice of one session-list row the preset sync reads.
+ *
+ * Declared locally instead of importing the session-controller typings so the
+ * client plugin only depends on the list contract it actually consumes.
+ */
+interface SessionPresetRow {
+  /** The Host projects `agentPreset` as `string | null`; absent until listed. */
+  readonly projectionValues?: { readonly agentPreset?: string | null } | undefined
+  readonly parentId?: string | undefined
+  readonly origin?: 'subagent' | undefined
+}
+
+interface SessionListFacade {
+  getSnapshot(): { readonly byId: Readonly<Record<string, SessionPresetRow | undefined>> }
+  subscribe(listener: () => void): () => void
+}
+
+interface SessionsFacade {
+  readonly list: SessionListFacade
 }
 
 export class WorkbenchController {
@@ -315,8 +340,14 @@ export class WorkbenchController {
     return callRemote<WorkTaskView | undefined>(this.ctx, 'work/taskGet', { taskId })
   }
 
-  async attachSession(sessionId: string): Promise<WorkTaskView> {
-    const task = await callRemote<WorkTaskView>(this.ctx, 'work/attachSession', { sessionId })
+  async attachSession(
+    sessionId: string,
+    origin: 'preset' | 'manual' = 'manual',
+  ): Promise<WorkTaskView> {
+    const task = await callRemote<WorkTaskView>(this.ctx, 'work/attachSession', {
+      sessionId,
+      origin,
+    })
     await this.refreshIndex()
     return task
   }
@@ -330,13 +361,84 @@ export class WorkbenchController {
     return result
   }
 
-  async toggleWorkMode(sessionId: string): Promise<'on' | 'off'> {
-    if (this.taskFor(sessionId)) {
-      await this.detachSession(sessionId)
-      return 'off'
+  /** Sessions whose preset is `work` and that this client has already asked the
+   * Host to attach; keeps list re-renders from issuing duplicate RPCs. */
+  private attaching = new Set<string>()
+
+  /**
+   * Attach the WorkTask for a session that carries the `work` agent preset.
+   *
+   * Idempotent and best-effort: a session that already has a task (or is being
+   * attached right now) is skipped, and a failed attach is retried on the next
+   * list change instead of interrupting typing.
+   */
+  async ensureWorkTask(sessionId: string): Promise<void> {
+    if (!sessionId || this.taskFor(sessionId) || this.attaching.has(sessionId)) return
+    this.attaching.add(sessionId)
+    try {
+      await this.attachSession(sessionId, 'preset')
+      // The preset may have changed while the attach was in flight; do not
+      // leave a work task behind for a session that already left it. An unknown
+      // preset (no row yet) is left alone.
+      const preset = this.sessionPreset(sessionId)
+      if (preset !== undefined && preset !== 'work') await this.releasePresetTask(sessionId)
+    } catch (cause) {
+      console.warn('[dsh-work] could not attach the work task', cause)
+    } finally {
+      this.attaching.delete(sessionId)
     }
-    await this.attachSession(sessionId)
-    return 'on'
+  }
+
+  /**
+   * Remove the draft task the `work` preset attached, when the session switches
+   * to another preset. Manually attached tasks (the `/work` command or the
+   * session menu) are never removed automatically.
+   *
+   * The decision is `shouldReleaseDraft`, the same predicate the pure tests
+   * cover, so a task from before `origin` existed is released too while it is
+   * still an untouched placeholder.
+   */
+  async releasePresetTask(sessionId: string): Promise<void> {
+    const preset = this.sessionPreset(sessionId)
+    // The row has not been listed yet: releasing on an unknown preset could
+    // take back a draft from a session that still is in work mode.
+    if (preset === undefined) return
+    const task = this.taskFor(sessionId)
+    if (!shouldReleaseDraft(preset, task)) return
+    try {
+      await this.detachSession(sessionId)
+    } catch (cause) {
+      console.warn('[dsh-work] could not release the preset work task', cause)
+    }
+  }
+
+  private sessionsFacade(): SessionsFacade | undefined {
+    return this.ctx.get('sessions') as SessionsFacade | undefined
+  }
+
+  private sessionRow(sessionId: string): SessionPresetRow | undefined {
+    return this.sessionsFacade()?.list.getSnapshot().byId[sessionId]
+  }
+
+  /** Session-list subscription for `useSyncExternalStore`. */
+  subscribeSessions = (listener: () => void): (() => void) => {
+    return this.sessionsFacade()?.list.subscribe(listener) ?? (() => {})
+  }
+
+  /**
+   * The agent preset the session records, e.g. `work`.
+   *
+   * `null` means the row is listed and carries no preset; `undefined` means the
+   * list has not delivered the row yet, so callers must not act on it.
+   */
+  sessionPreset(sessionId: string): string | null | undefined {
+    return this.sessionRow(sessionId)?.projectionValues?.agentPreset
+  }
+
+  /** Subagent sessions are navigation rows, never work surfaces of their own. */
+  isSubagentSession(sessionId: string): boolean {
+    const row = this.sessionRow(sessionId)
+    return row?.origin === 'subagent' || row?.parentId !== undefined
   }
 
   exportTask(taskId: string): Promise<{ path: string; size: number; artifacts: number }> {

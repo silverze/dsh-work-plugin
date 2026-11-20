@@ -133,16 +133,8 @@ export function WorkPanel({
           <div style={{ ...cardStyle, fontSize: 12, lineHeight: 1.6, opacity: 0.8 }}>
             <div>当前会话还不是工作任务。</div>
             <div style={{ opacity: 0.65 }}>
-              点击输入框左侧“工作模式”，或在 `+` 菜单选择“工作模式”，再正常发送目标。
+              新建会话时在模式选择器里选择“工作模式”，会话会自动成为工作任务。
             </div>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => void run(async () => { await workbench.attachSession(sessionId); await loadTask() })}
-              style={{ justifySelf: 'start', padding: '5px 10px', borderRadius: 7 }}
-            >
-              开启工作模式
-            </button>
           </div>
         ) : (
           <>

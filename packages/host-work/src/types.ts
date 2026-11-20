@@ -44,6 +44,13 @@ export interface WorkTask {
   status: WorkTaskStatus
   workspaceId: string
   preset: 'work'
+  /**
+   * How the task came to exist: the `work` agent preset attaches it
+   * automatically, while a person can still ask for it (the `/work` command or
+   * the session menu). Preset-driven drafts are released again when the session
+   * leaves the preset; manually attached ones are never removed automatically.
+   */
+  origin?: 'preset' | 'manual'
   model?: string
   runtime: WorkTaskRuntime
   attachments: string[]

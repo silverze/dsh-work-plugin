@@ -6,7 +6,9 @@
       name: '@deepseek-ai/dsh-agent-preset'
       config:
         id: work
-        order: 2
+        name: 工作模式
+        description: 把会话变成可追踪的工作任务：保留计划、成果库和定时任务，也能把结果发回飞书。
+        order: 2.5
         plugins:
           - id: persona
             name: '@deepseek-ai/dsh-persona'

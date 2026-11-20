@@ -1,4 +1,4 @@
-/** Session-scoped work UI: status badge, mode toggle, header button, row menu. */
+/** Session-scoped work UI: status badge and row menu. */
 
 import * as React from 'react'
 
@@ -77,98 +77,6 @@ export function WorkSessionBadge({
       />
       {task.outputs.length > 0 ? task.outputs.length : ''}
     </span>
-  )
-}
-
-/** Work-mode toggle in the context row above the composer. */
-export function WorkModeChip({
-  sessionId,
-  workbench,
-  notify,
-}: { sessionId: string } & WorkSessionInject): React.ReactElement {
-  const task = useWorkTask(workbench, sessionId)
-  const [busy, setBusy] = React.useState(false)
-  const enabled = Boolean(task)
-  return (
-    <button
-      type="button"
-      disabled={busy}
-      aria-pressed={enabled}
-      title={enabled ? '关闭工作模式' : '开启工作模式：把当前会话作为工作任务'}
-      onClick={() => {
-        void (async () => {
-          setBusy(true)
-          try {
-            const next = await workbench.toggleWorkMode(sessionId)
-            notify(next === 'on' ? '已开启工作模式' : '已关闭工作模式', true)
-            // Start the Feishu read immediately instead of waiting for the chip
-            // to mount and its first timer tick, but only where the Host has
-            // screen awareness: elsewhere the call can only reject.
-            if (next === 'on') {
-              void workbench.loadCapabilities().then((capabilities) => {
-                if (capabilities?.presence === false) return
-                void workbench.refreshPresence(true).catch(() => {})
-              })
-            }
-          } catch (cause) {
-            notify(cause instanceof Error ? cause.message : String(cause), false)
-          } finally {
-            setBusy(false)
-          }
-        })()
-      }}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 5,
-        padding: '4px 8px',
-        borderRadius: 999,
-        border: '1px solid',
-        borderColor: enabled ? 'var(--dsh-accent, rgba(59,130,246,.7))' : 'var(--dsh-border, rgba(127,127,127,.3))',
-        background: enabled ? 'rgba(59,130,246,.12)' : 'transparent',
-        color: 'inherit',
-        fontSize: 11,
-        cursor: busy ? 'default' : 'pointer',
-      }}
-    >
-      <span
-        aria-hidden="true"
-        style={{
-          width: 6,
-          height: 6,
-          borderRadius: 999,
-          background: enabled ? '#3b82f6' : 'rgba(127,127,127,.5)',
-        }}
-      />
-      工作模式
-      {enabled ? ' · 开' : ''}
-    </button>
-  )
-}
-
-/** Header action opening the right-side work panel. */
-export function WorkHeaderButton({
-  openPanel,
-}: {
-  openPanel: () => void
-}): React.ReactElement {
-  return (
-    <button
-      type="button"
-      onClick={openPanel}
-      title="打开工作任务面板"
-      style={{
-        padding: '4px 9px',
-        borderRadius: 7,
-        border: '1px solid var(--dsh-border, rgba(127,127,127,.3))',
-        background: 'transparent',
-        color: 'inherit',
-        fontSize: 11,
-        cursor: 'pointer',
-      }}
-    >
-      工作
-    </button>
   )
 }
 

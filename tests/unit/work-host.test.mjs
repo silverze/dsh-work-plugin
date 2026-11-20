@@ -475,6 +475,23 @@ test('attachSession creates a draft task and turn-start moves it to running', as
   })
 })
 
+test('a preset attach keeps the session title and records where it came from', async () => {
+  await withArtifactRoot(async (artifactRoot) => {
+    const h = makeCtx()
+    await apply(h.ctx, { artifactRoot, remote: false })
+    const service = h.provided.get('workTasks')
+    const before = h.renames.length
+    const task = await service.attachSession('sess-preset', 'preset')
+    assert.equal(task.origin, 'preset')
+    assert.equal(task.status, 'draft')
+    assert.equal(h.renames.length, before)
+    const attached = await service.attachSession('sess-preset', 'preset')
+    assert.equal(attached.origin, 'preset')
+    await service.detachSession('sess-preset')
+    assert.equal(h.tables.tasks.get('sess-preset'), undefined)
+  })
+})
+
 test('detachSession removes a draft task but keeps the session', async () => {
   await withArtifactRoot(async (artifactRoot) => {
     const h = makeCtx()

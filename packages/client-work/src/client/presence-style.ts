@@ -19,7 +19,7 @@ export interface PresenceStyleOption {
 }
 
 export const PRESENCE_STYLE_OPTIONS: readonly PresenceStyleOption[] = [
-  { id: 'dsh', label: 'DSH 默认', hint: '跟随主题的胶囊，蓝点标记，和工作模式 chip 一致' },
+  { id: 'dsh', label: 'DSH 默认', hint: '跟随主题的胶囊，蓝点标记当前会话' },
   { id: 'codex', label: 'Codex', hint: '等宽字体、方角、终端式前缀，像命令行里的引用' },
   { id: 'claude', label: 'Claude', hint: '暖陶土色、圆角放宽，低调的侧边标记' },
 ]

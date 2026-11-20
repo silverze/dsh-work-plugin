@@ -6,6 +6,35 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- Work mode is now a native DSH agent preset instead of a plugin toggle: the new
+  session mode picker lists **工作模式 / Work mode** with a one-line description and
+  the session attaches its WorkTask automatically, so the native header label is
+  the only mode indicator. The `work` preset declares `name`, `description` and
+  `order: 2.5`, placing it right after PTC.
+- The composer context row now carries only the Feishu chip; the work-mode chip,
+  the session-header 工作 button and the `+` menu 工作模式 command are gone (the
+  built-in header-corner button and the 工作 tab still open the workbench).
+- Work mode starts with a new session: DSH locks the agent preset after the first
+  message, so an existing conversation can no longer be switched into work mode.
+  A session that already carried the preset but never attached gets its draft
+  task the first time it is opened; tasks created by an older version keep their
+  state.
+
+### Fixed
+
+- Switching a still-blank session from the work preset back to another mode now
+  releases the draft task the preset attached, so the Feishu chip, the work badge
+  and the `[Work]` session title disappear with the mode. The auto-attach also no
+  longer renames the session up front; the title is derived from the first
+  message. Attached tasks record whether a preset or a person created them
+  (`origin`), and only preset drafts are released automatically.
+- The release also covers drafts attached by the older toggle, which carry no
+  `origin`: the client and its tests now share one `shouldReleaseDraft`
+  predicate, so a legacy placeholder is no longer kept alive by a stricter guard
+  in the controller.
+
 ## [0.2.1] - 2026-11-20
 
 ### Fixed

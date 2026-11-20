@@ -2,11 +2,12 @@
  * DSH Work client plugin.
  *
  * Keeps work inside native DSH sessions:
- * - one context row above the composer card: a "work mode" chip + `work-mode`
- *   command, and the Feishu presence chip that quotes the conversation on screen
- *   into the draft,
+ * - one context row above the composer card holding the Feishu presence chip that
+ *   quotes the conversation on screen into the draft,
+ * - preset-driven WorkTasks: a session created with the `work` agent preset
+ *   attaches its task automatically, so the native mode picker and header label
+ *   are the only work-mode controls,
  * - a status badge and per-session menu for WorkTasks,
- * - a session-header button opening the right-side work panel,
  * - one Feishu settings section with connection/preferences/data tabs.
  */
 
@@ -23,7 +24,6 @@ import { WORK_PARTNERS, composeTaskGoal } from './partners.js'
 import { FeishuSettingsShell } from './settings.js'
 import { WorkPanel } from './work-panel.js'
 import {
-  WorkHeaderButton,
   WorkSessionBadge,
   WorkSessionMenu,
   type WorkNotify,
@@ -51,13 +51,17 @@ export {
 export { parseFeishuLink } from './feishu-link.js'
 export { DataSettings, FeishuSettingsSection, FeishuSettingsShell, WorkGeneralSettings } from './settings.js'
 export { WorkPanel } from './work-panel.js'
-export { WorkHeaderButton, WorkModeChip, WorkSessionBadge, WorkSessionMenu } from './work-session-ui.js'
+export { WorkSessionBadge, WorkSessionMenu } from './work-session-ui.js'
+export { shouldAutoAttach, shouldReleaseDraft, useWorkPresetSync } from './work-preset.js'
 
 export interface WorkbenchInject {
   workbench: WorkbenchController
 }
 
-export const inject = ['slots', 'connection', 'uiWorkspace', 'sidebarRight']
+// `sessions` is required: the preset sync reads each Session's `agentPreset`
+// projection and subscribes to the list, so a missing service would leave the
+// work preset silently unattached instead of failing loudly at load.
+export const inject = ['slots', 'connection', 'uiWorkspace', 'sidebarRight', 'sessions']
 
 export function apply(ctx: ClientContext): void {
   const controller = new WorkbenchController(ctx)
@@ -71,8 +75,7 @@ export function apply(ctx: ClientContext): void {
 
   ctx.effect(() => controller.startIndexPolling())
 
-  // Context row above the composer card: the Feishu conversation being followed
-  // plus the work-mode toggle, on the band DSH renders above the input.
+  // Context row above the composer card: the Feishu conversation being followed.
   ctx.slots.inject('conversation.input.dock', () =>
     ctx.slots.register(
       {
@@ -108,19 +111,6 @@ export function apply(ctx: ClientContext): void {
         inject: () => ({ workbench: controller, notify }),
       },
       WorkSessionMenu,
-    ),
-  )
-
-  // Session header button opens the right-side work panel.
-  ctx.slots.inject('conversation.session.header.actions', () =>
-    ctx.slots.register(
-      {
-        name: 'conversation.session.header.actions',
-        id: 'dsh-work-header',
-        order: 20,
-        inject: () => ({ openPanel: () => ctx.sidebarRight.openTab('work') }),
-      },
-      WorkHeaderButton,
     ),
   )
 
@@ -171,42 +161,4 @@ export function apply(ctx: ClientContext): void {
       FeishuSettingsShell,
     ),
   )
-
-  // `+` / `/` menu action: toggle work mode for the current session.
-  const commandUi = ctx.get('commandUi') as
-    | {
-        register(contribution: {
-          name: string
-          label(): string
-          description(): string
-          available(): boolean
-          ui: { kind: 'action'; run(session: { sessionId?: string }): void }
-        }): () => void
-      }
-    | undefined
-  if (commandUi) {
-    ctx.effect(() =>
-      commandUi.register({
-        name: 'work-mode',
-        label: () => '工作模式',
-        description: () => '把当前会话切换为工作任务，或关闭 draft 任务',
-        available: () => true,
-        ui: {
-          kind: 'action',
-          run: (session) => {
-            const sessionId = session?.sessionId ? String(session.sessionId) : ''
-            if (!sessionId) return
-            void (async () => {
-              try {
-                const state = await controller.toggleWorkMode(sessionId)
-                notify(state === 'on' ? '已开启工作模式' : '已关闭工作模式', true)
-              } catch (cause) {
-                notify(cause instanceof Error ? cause.message : String(cause), false)
-              }
-            })()
-          },
-        },
-      }),
-    )
-  }
 }
