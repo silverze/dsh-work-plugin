@@ -1,6 +1,6 @@
 {
   "name": "@dsh-work-plugin/host",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "DSH Work host services: work tasks, artifact library, schedule binding, and notifications.",
   "license": "MIT",
   "author": "silverze",

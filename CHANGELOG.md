@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-20
+
 ### Added
 
 - `feishu_im_history`: read a chat's message history (group or direct) as the
@@ -44,7 +46,7 @@ All notable changes to this project are documented here. The format follows
 - Windows: the contact's department and job title, which sit under the chat name,
   are no longer quoted as messages (the conversation starts below the title row).
 - The Feishu conversation chip no longer shows up on a Host without screen
-  awareness (Linux, Windows). The Host now reports the feature through a new
+  awareness (Linux). The Host now reports the feature through a new
   `work/capabilities` remote method, and the client hides the chip and stops
   polling `work/presenceCapture` there; before, every click surfaced the raw
   English error "Feishu presence is disabled in this profile" and the chip kept
@@ -56,22 +58,6 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
-- Windows: the Feishu conversation is now read from the Chromium accessibility
-  tree (`UI Automation`), which returns the exact message text; OCR is only the
-  fallback when the tree is empty (a build with accessibility off, or a renamed
-  client). Inline spans that Feishu splits a message into are joined back
-  together, reaction tooltips are dropped, and container/image names no longer
-  masquerade as the chat title.
-- Windows: Feishu's translucent screen watermark no longer leaks into the
-  quoted messages. Windows OCR reads the diagonal watermark tiles as many tiny
-  lines, and a few of them always landed inside the conversation pane; the host
-  now drops lines whose glyph height is far below the median height of real text
-  (`dropWatermarkLines`), which follows window size and display scaling.
-- Windows: the chat name now comes from the header title instead of the composer
-  placeholder. The header renders the name larger, so OCR reads it more
-  completely; the macOS ordering is unchanged.
-- Windows: the contact's department and job title, which sit under the chat name,
-  are no longer quoted as messages (the conversation starts below the title row).
 - The Feishu conversation chip now renders in the context row above the composer
   card, beside the work-mode toggle, instead of below the card: the row is
   registered on `conversation.input.dock` ("entries above the composer card")
@@ -107,5 +93,8 @@ All notable changes to this project are documented here. The format follows
 - Seven bundled work skills: research, weekly report, meeting minutes, data
   analysis, presentation deck, document polish and screen awareness.
 
-[Unreleased]: https://github.com/silverze/dsh-work-plugin/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/silverze/dsh-work-plugin/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/silverze/dsh-work-plugin/releases/tag/v0.2.0
+[0.1.2]: https://github.com/silverze/dsh-work-plugin/releases/tag/v0.1.2
+[0.1.1]: https://github.com/silverze/dsh-work-plugin/releases/tag/v0.1.1
 [0.1.0]: https://github.com/silverze/dsh-work-plugin/releases/tag/v0.1.0
