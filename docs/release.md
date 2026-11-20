@@ -84,6 +84,11 @@ one YAML entry at `data/plugins/silverze__dsh-work-plugin--packages-bundle.yml`,
 index (`dsh-plugin-catalog`) is generated from that repository, so a version change
 needs no new entry — only a release.
 
+The first entry is
+[PR #17172](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/17172) on the
+upstream repository; once it merges, the storefront picks the plugin up on the next
+catalogue build.
+
 The entry is a single file, opened as a pull request against
 `awesome-dsh-plugin/awesome-dsh-plugin`. Keep it to one entry per PR (the repo caps a
 PR at three) and do not edit the generated README files:
