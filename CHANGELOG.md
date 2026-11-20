@@ -19,6 +19,10 @@ All notable changes to this project are documented here. The format follows
 - `pnpm check:yaml` no longer fails on `profiles/work/dev.patch.yml.example`, a file
   that was never checked in (the real `dev.patch.yml` is generated and git-ignored);
   the check now runs in CI as well.
+- The release workflow skips publishing when no `NPM_TOKEN` secret is set instead
+  of failing the tag run: an unset secret arrives as an empty env value, so the
+  old `if:` guard still ran the publish step and npm answered the anonymous
+  request with 404.
 - `scripts/install-work-profile.sh` installs the `@deepseek-ai/dsh-web-app` that
   matches the running runtime (installing rc.2 into rc.5 was rejected as
   incompatible) and points the bundle's `^<version>` dependencies at the packed
