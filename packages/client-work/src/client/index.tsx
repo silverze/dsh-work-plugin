@@ -31,6 +31,7 @@ import {
 
 export { ComposerContextRow } from './composer-context-row.js'
 export { WorkbenchController } from './controller.js'
+export type { WorkCapabilities } from './controller.js'
 export { WORK_PARTNERS, composeTaskGoal } from './partners.js'
 export { FeishuContextChip } from './feishu-context.js'
 export {

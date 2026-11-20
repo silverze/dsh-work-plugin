@@ -95,6 +95,9 @@ export function presenceErrorHint(error: string | undefined): string {
   if (/not on the current desktop|no window found/i.test(error)) {
     return '飞书窗口不在 DSH 所在的桌面（最小化或切到了别的桌面）；把飞书窗口放到当前桌面再点重试'
   }
+  if (/window is minimized/i.test(error)) {
+    return '飞书窗口被最小化了；从任务栏恢复窗口后再点重试'
+  }
   if (/No Feishu conversation recognized/i.test(error)) {
     return '飞书窗口在屏幕上了，但没识别出当前会话；把要引用的聊天切到前台再点重试'
   }
@@ -103,5 +106,6 @@ export function presenceErrorHint(error: string | undefined): string {
     return '缺少屏幕录制权限：系统设置 → 隐私与安全性 → 屏幕录制，勾选 DeepSeek Harness'
   }
   if (/swiftc|helper/i.test(error)) return '屏幕 OCR 组件尚未就绪，需要安装 Xcode 命令行工具后重试'
+  if (/OCR language pack/i.test(error)) return '系统没有可用的 OCR 语言包：设置 → 时间和语言 → 语言，安装中文或英文的 OCR 组件后重试'
   return error
 }

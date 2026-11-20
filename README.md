@@ -18,7 +18,7 @@
 
 </div>
 
-DSH Work adds a work layer to [DeepSeek Harness](https://github.com/deepseek-ai): a session can be attached to a **work task** that survives the conversation, collects its own deliverables, can rerun on a schedule, and — on macOS — can quote the Feishu conversation you are looking at straight into the composer.
+DSH Work adds a work layer to [DeepSeek Harness](https://github.com/deepseek-ai): a session can be attached to a **work task** that survives the conversation, collects its own deliverables, can rerun on a schedule, and — on macOS and Windows — can quote the Feishu conversation you are looking at straight into the composer.
 
 It is a plugin bundle, not a fork: when you turn it off, DeepSeek Harness is exactly what it was.
 
@@ -27,7 +27,7 @@ It is a plugin bundle, not a fork: when you turn it off, DeepSeek Harness is exa
 - **Work mode, not another preset.** Turn it on for one session; the default preset, other plugins and your settings stay untouched.
 - **Deliverables outlive the chat.** Every output is copied into the task's artifact library — docx, pptx, xlsx, images — openable from the panel months later.
 - **Recurring work runs itself.** Attach a schedule (daily report, weekly summary) to a task and let the host trigger it.
-- **Feishu is a first-class surface.** 14 model-facing Feishu tools for docs, sheets, wiki, IM and drive, and on macOS a composer chip that quotes the conversation currently on your screen.
+- **Feishu is a first-class surface.** 15 model-facing Feishu tools for docs, sheets, wiki, IM and drive, including full chat history by chat name, and on macOS/Windows a composer chip that quotes the conversation currently on your screen.
 
 ## Install
 
@@ -68,6 +68,8 @@ packages the bundle depends on are never installed.
 | macOS 13+ | required for the Feishu conversation chip and screen text tools |
 | Xcode Command Line Tools | the screen helper is compiled with `swiftc` on first use (~25 s, then cached) |
 | Screen Recording permission | macOS asks once when the chip first reads Feishu |
+| Windows 10+ | same chip and screen text tools, no permission prompt. Reads the Chromium accessibility tree for exact text, and falls back to OCR when that tree is empty |
+| Windows SDK (optional) | the Windows helper is compiled with the .NET Framework `csc` against the SDK's `Windows.winmd` (~0.5 s, then cached). Without it the bundled PowerShell helper takes over: same output, about 2 s slower per read |
 | Feishu app credentials | only for the Feishu tools; see [docs/feishu-app-setup.md](docs/feishu-app-setup.md) |
 
 ## Quick start
@@ -80,7 +82,7 @@ packages the bundle depends on are never installed.
 
 <img src="assets/screenshot-2.png" alt="Artifact library for a work task" width="880">
 
-## Feishu conversation context (macOS)
+## Feishu conversation context (macOS and Windows)
 
 When work mode is on, a chip appears above the composer with the Feishu chat you were last looking at:
 
@@ -88,7 +90,7 @@ When work mode is on, a chip appears above the composer with the Feishu chat you
 
 - **Click the chip** to insert a quoted block with the chat name, the read time and the visible messages.
 - **Click ▾** to pick one of the recent conversations or force a fresh read.
-- The chip **follows** the focused conversation while Feishu is in front (about 1.2 s per read, at most every 2.5 s).
+- The chip **follows** the focused conversation while Feishu is in front (about 1.2 s per read on macOS, 1.5-2 s on Windows, at most every 2.5 s).
 - If the read fails — Feishu minimized, on another Space, or permission revoked — the chip keeps the last conversation, marks it **上次 / last seen**, and still inserts a usable quote.
 
 OCR runs locally. The recognized text goes to the current session only; this plugin uploads nothing. Three appearances (DSH default, Codex, Claude) are selectable in **Settings → Feishu → Preferences**.
@@ -103,7 +105,7 @@ OCR runs locally. The recognized text goes to the current session only; this plu
 | Artifacts | `work_artifact_list`, `work_artifact_get`, `work_artifact_scan` |
 | Screen awareness | `work_frontmost_app`, `work_screen_text`, `work_feishu_screen`, `work_feishu_focus` |
 | Diagnostics | `work_ping` |
-| Feishu | `feishu_auth_start`, `feishu_auth_status`, `feishu_auth_disconnect`, `feishu_whoami`, `feishu_doc_create`, `feishu_doc_read`, `feishu_doc_append`, `feishu_wiki_get`, `feishu_sheet_read`, `feishu_sheet_write`, `feishu_sheet_append`, `feishu_im_send`, `feishu_drive_upload`, `feishu_share_artifact` |
+| Feishu | `feishu_auth_start`, `feishu_auth_status`, `feishu_auth_disconnect`, `feishu_whoami`, `feishu_doc_create`, `feishu_doc_read`, `feishu_doc_append`, `feishu_wiki_get`, `feishu_sheet_read`, `feishu_sheet_write`, `feishu_sheet_append`, `feishu_im_send`, `feishu_im_history`, `feishu_drive_upload`, `feishu_share_artifact` |
 
 ### Skills
 
@@ -149,8 +151,8 @@ The host reads the focused Feishu window with a small Swift helper (`CGWindowLis
 | Platform | Work tasks / artifacts / schedules | Feishu tools | Feishu chip / screen text |
 | --- | --- | --- | --- |
 | macOS 13+ | yes | yes | yes (Screen Recording + Xcode CLT) |
-| Linux | yes | yes | no — the tools return an actionable message |
-| Windows | yes | yes | no |
+| Linux | yes | yes | no — the Host reports the missing capability and the chip stays hidden |
+| Windows 10+ | yes | yes | yes (exact text from the Chromium accessibility tree; OCR fallback needs no permission either) |
 
 Troubleshooting:
 

@@ -57,6 +57,7 @@ docs                   architecture, compatibility, release notes
 - Keep host packages free of React and browser APIs; keep client packages free of Node APIs.
 - Comments explain why, not what. Delete dead code instead of commenting it out.
 - Tests must not contain real names, group names, order numbers, hostnames, or tokens. Use obviously fictional fixtures (`示例产品群`, `DEMO-8891`).
+- `pnpm check:public` also rejects emails, phone numbers and absolute home paths. Site-specific names (company, customers, colleagues) are not listed in the script — that file is public. Keep them in `scripts/public-denylist.local.txt`, one case-insensitive regular expression per line; it is git-ignored, so the guard only knows them on your machine.
 
 ## Pull requests
 

@@ -6,10 +6,72 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `feishu_im_history`: read a chat's message history (group or direct) as the
+  user, by chat name or chat_id, over a time window (`startTime`/`endTime`, or
+  `recent: "7d"`). Feishu has no count endpoint and no offsets, so the window is
+  the selector: each call returns a chunk of up to 1000 messages plus
+  `nextEndTime` / `nextStartTime` to continue, `order` to pick which end to
+  start from, and `stats` for per-day and per-sender counts without dumping the
+  text. Needs a valid user token with the IM read scopes.
+- Windows screen awareness: the Feishu conversation chip and the four screen
+  tools now work on Windows 10+. A C# helper (`native/screen-ocr-win.cs`) is
+  compiled once with the .NET Framework `csc` against the Windows SDK's
+  `Windows.winmd`, and reads the window with
+  `PrintWindow(PW_RENDERFULLCONTENT)` + the built-in `Windows.Media.Ocr` engine
+  (~1.5 s per read, no permission prompt). Without the SDK it falls back to a
+  PowerShell helper with the same output, about 2 s slower per read. The Swift
+  and C# helpers share one command line and one JSON shape, so the parser is the
+  same code on both platforms.
+
+### Fixed
+
+- Windows: the Feishu conversation is now read from the Chromium accessibility
+  tree (`UI Automation`), which returns the exact message text; OCR is only the
+  fallback when the tree is empty (a build with accessibility off, or a renamed
+  client). Inline spans that Feishu splits a message into are joined back
+  together, reaction tooltips are dropped, and container/image names no longer
+  masquerade as the chat title.
+- Windows: Feishu's translucent screen watermark no longer leaks into the
+  quoted messages. Windows OCR reads the diagonal watermark tiles as many tiny
+  lines, and a few of them always landed inside the conversation pane; the host
+  now drops lines whose glyph height is far below the median height of real text
+  (`dropWatermarkLines`), which follows window size and display scaling.
+- Windows: the chat name now comes from the header title instead of the composer
+  placeholder. The header renders the name larger, so OCR reads it more
+  completely; the macOS ordering is unchanged.
+- Windows: the contact's department and job title, which sit under the chat name,
+  are no longer quoted as messages (the conversation starts below the title row).
+- The Feishu conversation chip no longer shows up on a Host without screen
+  awareness (Linux, Windows). The Host now reports the feature through a new
+  `work/capabilities` remote method, and the client hides the chip and stops
+  polling `work/presenceCapture` there; before, every click surfaced the raw
+  English error "Feishu presence is disabled in this profile" and the chip kept
+  failing in the background every 2.5 s.
+- The `new_once` schedule test compares `artifactDir` with `path.join` instead of
+  a hand-built POSIX path, so `pnpm test` passes on Windows.
+
 ## [0.1.2] - 2026-11-13
 
 ### Fixed
 
+- Windows: the Feishu conversation is now read from the Chromium accessibility
+  tree (`UI Automation`), which returns the exact message text; OCR is only the
+  fallback when the tree is empty (a build with accessibility off, or a renamed
+  client). Inline spans that Feishu splits a message into are joined back
+  together, reaction tooltips are dropped, and container/image names no longer
+  masquerade as the chat title.
+- Windows: Feishu's translucent screen watermark no longer leaks into the
+  quoted messages. Windows OCR reads the diagonal watermark tiles as many tiny
+  lines, and a few of them always landed inside the conversation pane; the host
+  now drops lines whose glyph height is far below the median height of real text
+  (`dropWatermarkLines`), which follows window size and display scaling.
+- Windows: the chat name now comes from the header title instead of the composer
+  placeholder. The header renders the name larger, so OCR reads it more
+  completely; the macOS ordering is unchanged.
+- Windows: the contact's department and job title, which sit under the chat name,
+  are no longer quoted as messages (the conversation starts below the title row).
 - The Feishu conversation chip now renders in the context row above the composer
   card, beside the work-mode toggle, instead of below the card: the row is
   registered on `conversation.input.dock` ("entries above the composer card")

@@ -15,6 +15,8 @@
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 
+import { frontmostApplication } from './screen-ocr.js'
+
 const execFileAsync = promisify(execFile)
 
 /** App names that only mean "Feishu is open", not "a conversation is open". */
@@ -176,6 +178,10 @@ export function parseFeishuFocus(text: string, options: { recentLimit?: number }
  * Feishu clients (official Lark + a company build) are running at once.
  */
 export async function frontmostPid(): Promise<number | undefined> {
+  if (process.platform === 'win32') {
+    const app = await frontmostApplication().catch(() => ({ pid: -1, name: '' }))
+    return app.pid > 0 ? app.pid : undefined
+  }
   try {
     const { stdout } = await execFileAsync(
       'osascript',
@@ -190,6 +196,16 @@ export async function frontmostPid(): Promise<number | undefined> {
 }
 
 export async function frontmostApp(): Promise<PresenceApp> {
+  if (process.platform === 'win32') {
+    try {
+      const app = await frontmostApplication()
+      // Windows only exposes the executable name here (Feishu.exe); company
+      // builds ship their own executable, so the same name list applies.
+      return { app: app.name || null, isFeishu: /lark|feishu|飞书|小米办公|saxmsa/i.test(app.name) }
+    } catch (error) {
+      return { app: null, isFeishu: false, error: (error as Error).message }
+    }
+  }
   try {
     const { stdout } = await execFileAsync(
       'osascript',

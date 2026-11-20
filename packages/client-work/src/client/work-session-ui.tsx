@@ -102,8 +102,14 @@ export function WorkModeChip({
             const next = await workbench.toggleWorkMode(sessionId)
             notify(next === 'on' ? '已开启工作模式' : '已关闭工作模式', true)
             // Start the Feishu read immediately instead of waiting for the chip
-            // to mount and its first timer tick.
-            if (next === 'on') void workbench.refreshPresence(true).catch(() => {})
+            // to mount and its first timer tick, but only where the Host has
+            // screen awareness: elsewhere the call can only reject.
+            if (next === 'on') {
+              void workbench.loadCapabilities().then((capabilities) => {
+                if (capabilities?.presence === false) return
+                void workbench.refreshPresence(true).catch(() => {})
+              })
+            }
           } catch (cause) {
             notify(cause instanceof Error ? cause.message : String(cause), false)
           } finally {

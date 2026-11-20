@@ -430,4 +430,217 @@ export class FeishuHttpClient {
     )
     return { messageId: data.message_id ?? '' }
   }
+
+  /**
+   * Chats the user can see, filtered by name. The screen reader only knows the
+   * chat *name*; history needs the chat_id, and this is the endpoint that maps
+   * one to the other for a user token.
+   */
+  async searchChats(input: { query: string; pageSize?: number }): Promise<FeishuChatSummary[]> {
+    const data = await this.request<{ items?: Array<Record<string, unknown>> }>(
+      'GET',
+      '/im/v1/chats/search',
+      undefined,
+      {
+        query: input.query,
+        page_size: String(clamp(input.pageSize ?? 20, 1, 100)),
+      },
+    )
+    return (data.items ?? []).map((item) => ({
+      chatId: String(item.chat_id ?? ''),
+      name: String(item.name ?? ''),
+      ...(item.description ? { description: String(item.description) } : {}),
+      ...(item.chat_mode ? { chatMode: String(item.chat_mode) } : {}),
+    }))
+  }
+
+  /**
+   * Message history of one chat in the requested order, oldest first for
+   * `newest` requests. `maxPages × pageSize` bounds the cost of one call.
+   */
+  async listChatMessages(input: {
+    chatId: string
+    pageSize?: number
+    maxPages?: number
+    /** Milliseconds since epoch; Feishu expects seconds. */
+    startTime?: number
+    endTime?: number
+    /** Walk the window from its newest or oldest end. Default `newest`. */
+    order?: 'newest' | 'oldest'
+  }): Promise<{ messages: FeishuChatMessage[]; hasMore: boolean }> {
+    const pageSize = clamp(input.pageSize ?? 50, 1, 50)
+    const maxPages = clamp(input.maxPages ?? 2, 1, 20)
+    const collected: FeishuChatMessage[] = []
+    let pageToken: string | undefined
+    let hasMore = false
+    for (let page = 0; page < maxPages; page += 1) {
+      const data = await this.request<{
+        items?: Array<Record<string, unknown>>
+        page_token?: string
+        has_more?: boolean
+      }>('GET', '/im/v1/messages', undefined, {
+        container_id_type: 'chat',
+        container_id: input.chatId,
+        sort_type: input.order === 'oldest' ? 'ByCreateTimeAsc' : 'ByCreateTimeDesc',
+        page_size: String(pageSize),
+        ...(pageToken ? { page_token: pageToken } : {}),
+        ...(input.startTime ? { start_time: String(Math.floor(input.startTime / 1000)) } : {}),
+        ...(input.endTime ? { end_time: String(Math.floor(input.endTime / 1000)) } : {}),
+      })
+      for (const item of data.items ?? []) {
+        collected.push(readMessage(item, input.chatId))
+      }
+      hasMore = data.has_more === true
+      pageToken = data.page_token
+      if (!hasMore || !pageToken) break
+    }
+    return { messages: input.order === 'oldest' ? collected : collected.reverse(), hasMore }
+  }
+}
+
+function clamp(value: number, minimum: number, maximum: number): number {
+  return Math.min(Math.max(value, minimum), maximum)
+}
+
+export interface FeishuChatSummary {
+  chatId: string
+  name: string
+  description?: string
+  chatMode?: string
+}
+
+export interface FeishuChatMessage {
+  messageId: string
+  chatId: string
+  chatType?: string
+  msgType: string
+  /** Milliseconds since epoch, as Feishu reports it. */
+  createTime: number
+  senderId: string
+  senderType?: string
+  text: string
+}
+
+/**
+ * Flatten Feishu's per-type message body into readable text.
+ *
+ * The REST API wraps every payload twice: `body` is
+ * `{ "content": "<json string>" }`, and that string is the per-type object.
+ * Both shapes (wrapped and already-unwrapped) are accepted.
+ */
+export function messageText(msgType: string, body: unknown): string {
+  const payload = unwrapBody(body)
+  if (!payload || typeof payload !== 'object') {
+    return msgType === 'text' ? '' : `[${msgType}]`
+  }
+  const record = payload as Record<string, unknown>
+  if (msgType === 'text' || record.text !== undefined) {
+    const text = String(record.text ?? '').trim()
+    if (text) return text
+  }
+  if (msgType === 'post') {
+    // Post content may itself be wrapped as {"zh_cn": {...}} for rich posts.
+    const localized = record.zh_cn ?? record.en_us ?? record
+    const post = (localized && typeof localized === 'object' ? localized : record) as Record<string, unknown>
+    const title = typeof post.title === 'string' ? post.title.trim() : ''
+    const lines: string[] = []
+    const content = post.content
+    if (Array.isArray(content)) {
+      for (const paragraph of content) {
+        if (!Array.isArray(paragraph)) continue
+        const text = paragraph
+          .map((node) => (node && typeof node === 'object' ? String((node as Record<string, unknown>).text ?? '') : ''))
+          .join('')
+          .trim()
+        if (text) lines.push(text)
+      }
+    }
+    if (title || lines.length > 0) return [title, ...lines].filter(Boolean).join('\n')
+  }
+  if (msgType === 'image') return '[图片]'
+  if (msgType === 'file') return `[文件] ${String(record.file_name ?? '')}`.trim()
+  if (msgType === 'audio') return '[语音]'
+  if (msgType === 'media') return '[视频]'
+  if (msgType === 'sticker') return '[表情]'
+  if (msgType === 'interactive') return '[卡片]'
+  const fallback = String(record.text ?? '').trim()
+  return fallback || `[${msgType}]`
+}
+
+function safeJson(text: string): unknown {
+  try {
+    return JSON.parse(text) as unknown
+  } catch {
+    return undefined
+  }
+}
+
+/**
+ * The REST API sends `body: { content: "<json string>" }`; the string holds the
+ * per-type object. Flat shapes (already-unwrapped bodies, or `{text}`) pass
+ * through unchanged.
+ */
+function unwrapBody(body: unknown): unknown {
+  let value = body
+  for (let depth = 0; depth < 3; depth += 1) {
+    if (typeof value === 'string') {
+      value = safeJson(value)
+      continue
+    }
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      const record = value as Record<string, unknown>
+      const content = record.content
+      if (typeof content === 'string') {
+        value = safeJson(content)
+        continue
+      }
+      if (content && typeof content === 'object' && !Array.isArray(content)) {
+        value = content
+        continue
+      }
+    }
+    break
+  }
+  return value
+}
+
+function readMessage(item: Record<string, unknown>, chatId: string): FeishuChatMessage {
+  const sender = (item.sender ?? {}) as Record<string, unknown>
+  const msgType = String(item.msg_type ?? 'unknown')
+  return {
+    messageId: String(item.message_id ?? ''),
+    chatId: String(item.chat_id ?? chatId),
+    ...(item.chat_type ? { chatType: String(item.chat_type) } : {}),
+    msgType,
+    createTime: Number(item.create_time ?? 0),
+    senderId: String(sender.id ?? ''),
+    ...(sender.sender_type ? { senderType: String(sender.sender_type) } : {}),
+    text: messageText(msgType, item.body),
+  }
+}
+
+/**
+ * Pick the chat the user is looking at from a name search. Exact matches win;
+ * otherwise the shortest candidate that starts with the queried name wins, so
+ * "示例产品群" does not lose to "示例产品群（旧）" because of list order.
+ */
+export function resolveChatByName(
+  candidates: FeishuChatSummary[],
+  name: string,
+): FeishuChatSummary | undefined {
+  const wanted = name.trim()
+  if (!wanted) return undefined
+  const exact = candidates.find((candidate) => candidate.name.trim() === wanted)
+  if (exact) return exact
+  const byLength = (a: FeishuChatSummary, b: FeishuChatSummary) => a.name.length - b.name.length
+  // The screen may show a truncated title: the chat whose name starts with what
+  // we read is the better guess than a shorter chat that the title extends.
+  const extendsName = candidates
+    .filter((candidate) => candidate.name.trim().startsWith(wanted))
+    .sort(byLength)
+  if (extendsName[0]) return extendsName[0]
+  const containedInName = candidates
+    .filter((candidate) => wanted.startsWith(candidate.name.trim()))
+    .sort(byLength)
+  return containedInName[0] ?? candidates[0]
 }

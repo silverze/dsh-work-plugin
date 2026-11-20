@@ -79,6 +79,12 @@ export interface FeishuPresenceSnapshot extends FeishuPresenceEntry {
   error?: string
 }
 
+/** Optional Host features. The snapshot stays `undefined` until the Host answers. */
+export interface WorkCapabilities {
+  /** Screen/Feishu awareness: available on the macOS and Windows Hosts. */
+  presence: boolean
+}
+
 export class WorkbenchController {
   constructor(private readonly ctx: ClientContext) {}
 
@@ -170,6 +176,51 @@ export class WorkbenchController {
   }
 
   presenceSnapshot = (): FeishuPresenceSnapshot | undefined => this.presence
+
+  private capabilitiesValue: WorkCapabilities | undefined
+  private capabilitiesLoaded = false
+  private capabilitiesInflight: Promise<WorkCapabilities | undefined> | undefined
+  private capabilityListeners = new Set<() => void>()
+
+  subscribeCapabilities = (listener: () => void): (() => void) => {
+    this.capabilityListeners.add(listener)
+    return () => this.capabilityListeners.delete(listener)
+  }
+
+  capabilitiesSnapshot = (): WorkCapabilities | undefined => this.capabilitiesValue
+
+  /** Ask the Host which optional features exist. The answer depends on the Host's
+   * platform, not on the session, so it is cached after the first success.
+   *
+   * `undefined` means "not answered yet". A failed probe assumes the feature
+   * exists: an older Host has no capabilities endpoint, and a working macOS
+   * host must not lose the chip because of one bad read; the feature's own
+   * error still reaches the user if it truly is unavailable.
+   */
+  loadCapabilities(): Promise<WorkCapabilities | undefined> {
+    if (this.capabilitiesLoaded) return Promise.resolve(this.capabilitiesValue)
+    this.capabilitiesInflight ??= callRemote<WorkCapabilities>(
+      this.ctx,
+      'work/capabilities',
+      {},
+      15_000,
+    )
+      .then((value) => {
+        this.capabilitiesLoaded = true
+        this.capabilitiesValue = { presence: value?.presence === true }
+        for (const listener of this.capabilityListeners) listener()
+        return this.capabilitiesValue
+      })
+      .catch(() => {
+        this.capabilitiesValue = { presence: true }
+        for (const listener of this.capabilityListeners) listener()
+        return this.capabilitiesValue
+      })
+      .finally(() => {
+        this.capabilitiesInflight = undefined
+      })
+    return this.capabilitiesInflight
+  }
 
   private presenceStyleValue: PresenceStyle = 'dsh'
   private styleLoaded = false

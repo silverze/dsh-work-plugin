@@ -1,20 +1,29 @@
 /**
  * Local screen reading for DSH Work.
  *
- * Feishu is a Chromium app whose web content is nearly invisible to the
- * accessibility tree (see presence.ts, which needs a 26+ level dump costing
- * tens of thousands of tokens). Screen Recording + Apple's Vision OCR reads the
- * same window in about a second for a few hundred tokens instead, so that is
- * the default path; the accessibility parser stays as a fallback.
+ * Feishu is a Chromium app whose web content is nearly invisible to macOS's
+ * accessibility tree (see presence.ts, which needs a 26+ level dump costing tens
+ * of thousands of tokens). Screen capture + OCR reads the same window in about a
+ * second for a few hundred tokens instead, so that is the macOS default.
  *
- * The Swift helper is compiled once with `swiftc -O` into the user cache
- * directory and reused afterwards. Compilation only needs the Command Line
- * Tools, not a full Xcode install.
+ * Two native helpers implement the same commands and emit the same JSON, so
+ * everything below the helper is shared:
+ *
+ * - macOS: `native/screen-ocr.swift`, compiled once with `swiftc -O` into the
+ *   user cache (Command Line Tools only, not a full Xcode install), using
+ *   `screencapture -l` and Apple's Vision OCR.
+ * - Windows: `native/screen-ocr-win.cs`, compiled once with the .NET Framework
+ *   `csc` against the Windows SDK's `Windows.winmd`. It reads the chat from
+ *   Chromium's UI Automation tree (exact text) and falls back to
+ *   `PrintWindow(PW_RENDERFULLCONTENT)` + `Windows.Media.Ocr` when that tree is
+ *   empty. `native/screen-ocr.ps1` is the same OCR path in PowerShell for
+ *   machines without the SDK.
  */
 
 import { execFile } from 'node:child_process'
-import { existsSync } from 'node:fs'
-import { chmod, mkdir, rename, stat } from 'node:fs/promises'
+import { createHash } from 'node:crypto'
+import { existsSync, readdirSync } from 'node:fs'
+import { chmod, mkdir, readFile, rename, stat, unlink, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -35,6 +44,8 @@ export interface ScreenCapture {
   bounds: { x: number; y: number; width: number; height: number }
   imageWidth: number
   imageHeight: number
+  /** How the text was read: exact accessibility tree, or OCR of the window. */
+  source?: 'uia' | 'ocr'
   lines: ScreenLine[]
 }
 
@@ -50,7 +61,25 @@ export interface FeishuScreenFocus {
   error?: string
 }
 
-const MAC_ONLY = 'screen reading requires macOS'
+const MAC_ONLY = 'screen reading requires macOS or Windows'
+
+/** CJK punctuation Windows OCR separates from its neighbours by a space too. */
+const CJK_PUNCTUATION = '，。：；！？、（）【】「」『』．·…—～'
+
+/**
+ * Windows OCR inserts a space between every CJK character (it treats each as a
+ * word), which would turn 「示例产品群」 into 「示 例 产 品 群」 and defeat the chat-name
+ * heuristics. Join characters back into words, and drop the spaces it also puts
+ * around CJK punctuation; Latin words keep their spaces.
+ */
+export function joinCjkSpaces(text: string): string {
+  return text
+    .replace(/(?<=[\u3400-\u9fff])\s+(?=[\u3400-\u9fff])/g, '')
+    .replace(new RegExp(`\\s+([${CJK_PUNCTUATION}])`, 'g'), '$1')
+    .replace(new RegExp(`([${CJK_PUNCTUATION}])\\s+`, 'g'), '$1')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+}
 
 /** Lower bound for a composer-derived pane edge, so noise cannot collapse it. */
 const PANE_LEFT_MIN = 0.18
@@ -142,7 +171,29 @@ export function ocrSourcePath(): string {
   return fileURLToPath(new URL('../native/screen-ocr.swift', import.meta.url))
 }
 
+/** The Windows helper ships as source; PowerShell runs it in place. */
+export function windowsHelperPath(): string {
+  return fileURLToPath(new URL('../native/screen-ocr.ps1', import.meta.url))
+}
+
+/** The C# helper ships as source too and is compiled into this cache. */
+export function windowsHelperSourcePath(): string {
+  return fileURLToPath(new URL('../native/screen-ocr-win.cs', import.meta.url))
+}
+
+export function windowsHelperCacheDir(): string {
+  const base = process.env.LOCALAPPDATA ?? join(homedir(), 'AppData', 'Local')
+  return join(base, 'dsh-work', 'bin')
+}
+
+/** Windows PowerShell 5.1: the only PowerShell with built-in WinRT projections. */
+export function windowsPowerShellPath(): string {
+  const root = process.env.SystemRoot ?? 'C:\\Windows'
+  return join(root, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe')
+}
+
 export function ocrBinaryPath(): string {
+  if (process.platform === 'win32') return join(windowsHelperCacheDir(), 'screen-ocr.exe')
   const base =
     process.platform === 'darwin'
       ? join(homedir(), 'Library', 'Application Support', 'DSH Work', 'bin')
@@ -150,19 +201,155 @@ export function ocrBinaryPath(): string {
   return join(base, 'screen-ocr')
 }
 
+/**
+ * Compile the C# helper with the .NET Framework compiler that ships with
+ * Windows, against the WinRT metadata of an installed Windows SDK.
+ *
+ * The SDK is optional: without it the compiler cannot resolve the WinRT types,
+ * and the PowerShell helper takes over (correct, ~2 s slower per read). The
+ * choice is cached as a file so a machine never retries a doomed compile.
+ */
+async function buildWindowsHelper(): Promise<string> {
+  const source = windowsHelperSourcePath()
+  const cacheDir = windowsHelperCacheDir()
+  const exe = join(cacheDir, 'screen-ocr.exe')
+  const hashFile = join(cacheDir, 'screen-ocr.sha256')
+  const fallbackFile = join(cacheDir, 'screen-ocr.fallback')
+
+  if (!existsSync(source)) return windowsHelperPath()
+  const hash = createHash('sha256').update(await readFile(source)).digest('hex')
+  if (existsSync(exe) && existsSync(hashFile)) {
+    const cached = (await readFile(hashFile, 'utf8')).trim()
+    if (cached === hash) return exe
+  }
+  if (existsSync(fallbackFile)) {
+    const cached = (await readFile(fallbackFile, 'utf8')).trim()
+    if (cached.startsWith(hash)) return windowsHelperPath()
+  }
+
+  const csc = [
+    join(process.env.WINDIR ?? 'C:\\Windows', 'Microsoft.NET', 'Framework64', 'v4.0.30319', 'csc.exe'),
+    join(process.env.WINDIR ?? 'C:\\Windows', 'Microsoft.NET', 'Framework', 'v4.0.30319', 'csc.exe'),
+  ].find((candidate) => existsSync(candidate))
+  const winmd = findUnionWinmd()
+  if (!csc || !winmd) {
+    await mkdir(cacheDir, { recursive: true })
+    await writeFile(fallbackFile, `${hash}: no Windows SDK (csc=${Boolean(csc)} winmd=${Boolean(winmd)})`, 'utf8')
+    return windowsHelperPath()
+  }
+
+  await mkdir(cacheDir, { recursive: true })
+  const staging = `${exe}.${process.pid}.tmp`
+  const wpf = join(process.env.WINDIR ?? 'C:\\Windows', 'Microsoft.NET', 'Framework64', 'v4.0.30319', 'WPF')
+  const args = [
+    '/nologo',
+    '/target:exe',
+    `/out:${staging}`,
+    '/r:System.Runtime.dll',
+    '/r:System.Runtime.WindowsRuntime.dll',
+    '/r:System.Drawing.dll',
+    // UI Automation: Chromium exposes the chat as exact text there.
+    `/r:${join(wpf, 'UIAutomationClient.dll')}`,
+    `/r:${join(wpf, 'UIAutomationTypes.dll')}`,
+    `/r:${join(wpf, 'WindowsBase.dll')}`,
+    `/r:${winmd}`,
+    source,
+  ]
+  try {
+    await runFile(csc, args, 120_000)
+    await rename(staging, exe)
+    await writeFile(hashFile, hash, 'utf8')
+    return exe
+  } catch (error) {
+    await unlink(staging).catch(() => undefined)
+    const detail = (error as { stderr?: string }).stderr?.trim() ?? (error as Error).message
+    await writeFile(fallbackFile, `${hash}: ${detail}`, 'utf8')
+    return windowsHelperPath()
+  }
+}
+
+/** Highest-version `Windows.winmd` of an installed Windows SDK, if any. */
+export function findUnionWinmd(): string | undefined {
+  const root = join(process.env['ProgramFiles(x86)'] ?? 'C:\\Program Files (x86)', 'Windows Kits', '10', 'UnionMetadata')
+  if (!existsSync(root)) return undefined
+  const versions = readdirSync(root, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .sort((a, b) => compareVersions(b, a))
+  for (const version of versions) {
+    const candidate = join(root, version, 'Windows.winmd')
+    if (existsSync(candidate)) return candidate
+  }
+  return undefined
+}
+
+function compareVersions(a: string, b: string): number {
+  const left = a.split('.').map((part) => Number.parseInt(part, 10) || 0)
+  const right = b.split('.').map((part) => Number.parseInt(part, 10) || 0)
+  for (let index = 0; index < Math.max(left.length, right.length); index += 1) {
+    const diff = (left[index] ?? 0) - (right[index] ?? 0)
+    if (diff !== 0) return diff
+  }
+  return 0
+}
+
+let windowsHelperPromise: Promise<string> | undefined
+
+/** Path to the runnable Windows helper: the compiled C# exe, else the script. */
+export function ensureWindowsHelper(): Promise<string> {
+  windowsHelperPromise ??= buildWindowsHelper().catch(() => windowsHelperPath())
+  return windowsHelperPromise
+}
+
 let buildPromise: Promise<string> | undefined
 
 /**
- * Compile the helper on first use and reuse it while the Swift source is
- * unchanged. Concurrent callers share one compilation.
+ * Make the platform helper runnable. Windows needs nothing: the PowerShell
+ * script runs in place. macOS compiles the Swift helper on first use and reuses
+ * it while the source is unchanged; concurrent callers share one compilation.
  */
 export function ensureOcrBinary(): Promise<string> {
+  if (process.platform === 'win32') return ensureWindowsHelper()
   if (process.platform !== 'darwin') return Promise.reject(new Error(MAC_ONLY))
   buildPromise ??= buildOcrBinary().catch((error: unknown) => {
     buildPromise = undefined
     throw error
   })
   return buildPromise
+}
+
+/**
+ * Program plus arguments that run one helper command on this platform. Windows
+ * prefers the compiled helper; the PowerShell script is the fallback for
+ * machines without the Windows SDK.
+ */
+export async function ocrHelperInvocation(
+  args: string[],
+): Promise<{ file: string; args: string[] }> {
+  if (process.platform === 'win32') {
+    const helper = await ensureWindowsHelper()
+    if (helper.toLowerCase().endsWith('.exe')) return { file: helper, args }
+    return {
+      file: windowsPowerShellPath(),
+      args: [
+        '-NoProfile',
+        '-NonInteractive',
+        '-ExecutionPolicy',
+        'Bypass',
+        '-File',
+        helper,
+        ...args,
+      ],
+    }
+  }
+  return { file: await ensureOcrBinary(), args }
+}
+
+/** Run one helper command and parse its JSON stdout. */
+async function runHelper<T>(args: string[], timeoutMs: number): Promise<T> {
+  const { file, args: argv } = await ocrHelperInvocation(args)
+  const { stdout } = await runFile(file, argv, timeoutMs)
+  return JSON.parse(stdout) as T
 }
 
 async function buildOcrBinary(): Promise<string> {
@@ -206,31 +393,79 @@ export function describeCaptureFailure(message: string): string {
   return message
 }
 
+/**
+ * Drop the fragments left by Feishu's screen watermark.
+ *
+ * Enterprise Feishu clients stamp a translucent, diagonal watermark ("name +
+ * department + time") across the window. Windows OCR reads that text, so it
+ * arrives as many short lines with a glyph height far below real UI text, and a
+ * few of them always fall inside the conversation pane. The threshold is
+ * relative to the median height of long lines, so it follows the window size and
+ * the display scaling instead of assuming 100% DPI.
+ */
+export function dropWatermarkLines(lines: ScreenLine[]): ScreenLine[] {
+  const heights = lines
+    .filter((line) => line.w >= 0.08)
+    .map((line) => line.h)
+    .sort((a, b) => a - b)
+  if (heights.length < 5) return lines
+  const median = heights[Math.floor(heights.length / 2)] ?? 0
+  const minimum = median * 0.65
+  if (minimum <= 0) return lines
+  return lines.filter((line) => line.h >= minimum)
+}
+
+/** Windows OCR splits CJK into one-word-per-character; restore real words. */
+function prepareCapture(capture: ScreenCapture): ScreenCapture {
+  if (process.platform !== 'win32') return capture
+  // The accessibility tree carries exact text: no per-character spacing, and no
+  // watermark tiles to filter out.
+  if (capture.source === 'uia') return capture
+  const lines = capture.lines.map((line) => ({ ...line, text: joinCjkSpaces(line.text) }))
+  return { ...capture, lines: dropWatermarkLines(lines) }
+}
+
 export async function captureApp(
   pid: number,
   windowNumber?: number,
 ): Promise<ScreenCapture> {
-  const binary = await ensureOcrBinary()
   const args = [String(pid)]
   if (typeof windowNumber === 'number' && Number.isInteger(windowNumber)) {
     args.push(String(windowNumber))
   }
-  const { stdout } = await runFile(binary, args, 30_000)
-  const parsed = JSON.parse(stdout) as ScreenCapture
+  const parsed = await runHelper<ScreenCapture>(args, 45_000)
   if (!Array.isArray(parsed.lines)) throw new Error('screen OCR helper returned no lines')
-  return parsed
+  return prepareCapture(parsed)
+}
+
+/**
+ * Windows only: pick the Feishu window and capture it in one helper run. A pid
+ * list cannot tell the chat window apart from a dozen `Feishu.exe` helpers, and
+ * a second process launch would cost another ~0.6 s.
+ */
+export async function captureFeishuWindow(): Promise<ScreenCapture & { frontmost?: boolean }> {
+  const parsed = await runHelper<ScreenCapture & { frontmost?: boolean }>(['--feishu'], 45_000)
+  if (!Array.isArray(parsed.lines)) throw new Error('screen OCR helper returned no lines')
+  return prepareCapture(parsed)
 }
 
 /**
  * The application that currently has keyboard focus, read through the native
- * helper so a poll costs a few milliseconds instead of an AppleScript launch.
+ * helper so a poll costs a process launch instead of an AppleScript round trip.
  * Returns -1 when the helper cannot report it.
  */
 export async function frontmostNativePid(): Promise<number> {
-  const binary = await ensureOcrBinary()
-  const { stdout } = await runFile(binary, ['--frontmost'], 5_000)
-  const parsed = JSON.parse(stdout) as { pid?: number }
+  const parsed = await runHelper<{ pid?: number }>(['--frontmost'], 10_000)
   return typeof parsed.pid === 'number' ? parsed.pid : -1
+}
+
+/** Frontmost process as `{ pid, name }`; `name` is the executable base name. */
+export async function frontmostApplication(): Promise<{ pid: number; name: string }> {
+  const parsed = await runHelper<{ pid?: number; name?: string }>(['--frontmost'], 10_000)
+  return {
+    pid: typeof parsed.pid === 'number' ? parsed.pid : -1,
+    name: typeof parsed.name === 'string' ? parsed.name : '',
+  }
 }
 
 export interface WindowCandidate {
@@ -245,9 +480,7 @@ export interface WindowCandidate {
 }
 
 export async function listWindows(): Promise<WindowCandidate[]> {
-  const binary = await ensureOcrBinary()
-  const { stdout } = await runFile(binary, ['--list'], 20_000)
-  return JSON.parse(stdout) as WindowCandidate[]
+  return runHelper<WindowCandidate[]>(['--list'], 30_000)
 }
 
 /** Process names that host a Feishu client, most specific first. */
@@ -310,7 +543,33 @@ export function parseFeishuPids(psOutput: string): number[] {
   return [...new Set(found.map((entry) => entry.pid))]
 }
 
+/**
+ * Windows has no `/bin/ps`; `tasklist` prints one CSV row per process, e.g.
+ * `"Feishu.exe","32412","Console","1","200,000 K"`. Only the image name and pid
+ * matter, and the company builds use the same names as the macOS bundles.
+ */
+export function parseTasklistOutput(csv: string): number[] {
+  const found: number[] = []
+  for (const row of csv.split(/\r?\n/)) {
+    const columns = row.split('","')
+    if (columns.length < 2) continue
+    const [imageColumn = '', pidColumn = ''] = columns
+    const image = imageColumn.replace(/^"|"$/g, '').trim()
+    const pid = Number.parseInt(pidColumn.replace(/"/g, '').trim(), 10)
+    if (!Number.isInteger(pid) || pid <= 0) continue
+    const name = image.replace(/\.exe$/i, '')
+    if (FEISHU_HELPER.test(name)) continue
+    if (!FEISHU_MAIN.test(name)) continue
+    found.push(pid)
+  }
+  return [...new Set(found)]
+}
+
 export async function findFeishuPids(): Promise<number[]> {
+  if (process.platform === 'win32') {
+    const { stdout } = await runFile('tasklist', ['/FO', 'CSV', '/NH'], 20_000)
+    return parseTasklistOutput(stdout)
+  }
   const { stdout } = await runFile('/bin/ps', ['-axo', 'pid=,ppid=,comm='], 10_000)
   return parseFeishuPids(stdout)
 }
@@ -336,7 +595,7 @@ export function preferFrontmost(pids: number[], frontPid?: number): number[] {
  */
 export function parseFeishuScreen(
   capture: Pick<ScreenCapture, 'lines' | 'imageWidth' | 'imageHeight' | 'windowNumber'>,
-  options: { maxMessages?: number } = {},
+  options: { maxMessages?: number; preferTitle?: boolean } = {},
 ): FeishuScreenFocus {
   const maxMessages = Math.max(1, Math.min(options.maxMessages ?? 20, 60))
   const lines = [...capture.lines].sort((a, b) => (a.y === b.y ? a.x - b.x : a.y - b.y))
@@ -371,12 +630,22 @@ export function parseFeishuScreen(
   const header = paneHeader.map((line) => line.text)
   // Only the title itself names the chat: any other plausible line in the band
   // is a tab label or the job-title subtitle, and naming a chat after those was
-  // the "0o"-style failure with extra steps.
-  const chatName = composerName || titleName || ''
+  // the "0o"-style failure with extra steps. The composer placeholder is usually
+  // the cleaner read on macOS; on Windows the header title is rendered larger,
+  // so it survives OCR more often and wins there.
+  const chatName = options.preferTitle
+    ? titleName || composerName || ''
+    : composerName || titleName || ''
 
+  // The Feishu header block on Windows also carries the contact's department and
+  // job title right below the name. Those are metadata, not messages, so the
+  // conversation starts below the title row rather than below a fixed fraction.
+  const headerBottom = options.preferTitle && titleLine
+    ? Math.min(titleLine.y + 0.05, 0.16)
+    : TITLE_MAX_Y
   const titleBottom = composer ? composer.y : 1
   const messages = right
-    .filter((line) => line.y > TITLE_MAX_Y && line.y < titleBottom)
+    .filter((line) => line.y > headerBottom && line.y < titleBottom)
     .map((line) => line.text.trim())
     .filter((text) => text.length > 0 && !TIME_LINE.test(text))
     // Stray glyphs ("◎", "•") carry no content.

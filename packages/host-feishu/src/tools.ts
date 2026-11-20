@@ -9,9 +9,66 @@ import type { ContentBlock } from '@deepseek-ai/dsh-llm'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 
 import type { FeishuHttpClient } from './feishu-client.js'
+import {
+  formatStamp,
+  formatTranscript,
+  readChatHistory,
+  type ChatHistoryResult,
+  type ChatHistoryStats,
+} from './im-history.js'
+
+/** "6h" | "3d" | "4w" | "6m" → start of the window in milliseconds. */
+function parseRecent(value: string | undefined): number | undefined {
+  if (!value) return undefined
+  const match = /^(\d+)\s*([hdwm])$/i.exec(value.trim())
+  if (!match) return undefined
+  const amount = Number(match[1])
+  const unit = (match[2] ?? 'd').toLowerCase()
+  const day = 86_400_000
+  const size = unit === 'h' ? 3_600_000 : unit === 'd' ? day : unit === 'w' ? day * 7 : day * 30
+  return Date.now() - amount * size
+}
+
+function formatRange(history: ChatHistoryResult): string {
+  const first = history.messages[0]
+  const last = history.messages[history.messages.length - 1]
+  if (!first || !last) return ''
+  return `${formatStamp(first.createTime)} → ${formatStamp(last.createTime)}`
+}
+
+function formatStats(stats: ChatHistoryStats): string {
+  const lines = [`Range stats: ${stats.total} message(s)`]
+  if (stats.days.length > 0) {
+    lines.push('Per day: ' + stats.days.map((day) => `${day.date} ${day.count}`).join(', '))
+  }
+  if (stats.senders.length > 0) {
+    lines.push(
+      'Top senders: ' +
+        stats.senders
+          .slice(0, 8)
+          .map((sender) => `${sender.senderId} ${sender.count}`)
+          .join(', '),
+    )
+  }
+  return lines.join('\n')
+}
+
+/** ISO 8601 or epoch milliseconds → milliseconds; undefined when unparseable. */
+function parseTime(value: string | undefined): number | undefined {
+  if (!value) return undefined
+  const trimmed = value.trim()
+  if (!trimmed) return undefined
+  if (/^\d+$/.test(trimmed)) {
+    const numeric = Number(trimmed)
+    return Number.isFinite(numeric) && numeric > 0 ? numeric : undefined
+  }
+  const parsed = Date.parse(trimmed)
+  return Number.isFinite(parsed) ? parsed : undefined
+}
 
 const MAX_DOC_CHARS = 100_000
 const DEFAULT_DOC_CHARS = 20_000
+
 
 function text(value: string): ContentBlock {
   return { type: 'text', text: value }
@@ -387,6 +444,101 @@ export function registerFeishuTools(ctx: Context, client: FeishuHttpClient): voi
           msgType: args.msgType,
           content: payload,
         })
+      },
+    }),
+  )
+
+  ctx.tools.register(
+    defineTool({
+      name: 'feishu_im_history',
+      description:
+        'Read the message history of a Feishu chat (group or direct) as a user. Pick a time window (or `recent: "7d"`) and the tool pages through it: one chunk per call, up to 1000 messages, plus per-day/per-sender stats. When `nextEndTime` is returned, pass it back as `endTime` to continue with older messages. Read-only; senders are open_ids.',
+      parameters: {
+        chatName: {
+          type: 'string',
+          description: 'Chat name as shown in Feishu, e.g. the group title read from the screen.',
+        },
+        chatId: { type: 'string', description: 'Exact chat_id; skips the name search.' },
+        recent: {
+          type: 'string',
+          description: 'Shorthand for the start of the window: "6h", "3d", "7d", "4w", "6m". Ignored when startTime is given.',
+        },
+        startTime: {
+          type: 'string',
+          description:
+            'Only messages at or after this time: ISO 8601 (2026-11-19T16:22:00+08:00) or epoch milliseconds.',
+        },
+        endTime: {
+          type: 'string',
+          description: 'Only messages at or before this time: ISO 8601 or epoch milliseconds.',
+        },
+        limit: {
+          type: 'number',
+          description: 'Messages in this chunk (default 100, cap 1000). Use order + nextEndTime to walk further.',
+        },
+        order: {
+          type: 'string',
+          enum: ['newest', 'oldest'],
+          description: 'Which end of the window to start from. Default newest.',
+        },
+        stats: {
+          type: 'boolean',
+          description:
+            'Also return per-day counts and a sender histogram for the chunk — cheap way to size a month before reading it.',
+        },
+      },
+      output: {
+        schema: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            chatId: { type: 'string' },
+            chatName: { type: 'string' },
+            truncated: { type: 'boolean' },
+            count: { type: 'number' },
+            range: { type: 'string' },
+            stats: { type: 'string' },
+            nextEndTime: { type: 'string' },
+            nextStartTime: { type: 'string' },
+            transcript: { type: 'string' },
+          },
+        },
+        render: (_args, value): ContentBlock[] => {
+          const parts = [`Feishu chat ${value.chatName || value.chatId} — ${value.count} message(s)${value.range ? ` (${value.range})` : ''}`]
+          if (value.truncated) {
+            parts.push(
+              value.nextEndTime
+                ? `More messages in this window: call again with endTime=${value.nextEndTime} to continue older.`
+                : `More messages in this window: call again with startTime=${value.nextStartTime} to continue newer.`,
+            )
+          }
+          if (value.stats) parts.push(value.stats)
+          parts.push(value.transcript ?? '')
+          return [text(parts.filter(Boolean).join('\n\n'))]
+        },
+      },
+      async execute(args) {
+        const startTime = parseTime(args.startTime) ?? parseRecent(args.recent)
+        const history = await readChatHistory(client, {
+          ...(args.chatName ? { chatName: args.chatName } : {}),
+          ...(args.chatId ? { chatId: args.chatId } : {}),
+          ...(args.limit ? { limit: args.limit } : {}),
+          ...(args.order ? { order: args.order } : {}),
+          ...(args.stats ? { stats: true } : {}),
+          ...(startTime ? { startTime } : {}),
+          ...(parseTime(args.endTime) ? { endTime: parseTime(args.endTime) } : {}),
+        })
+        return {
+          chatId: history.chatId,
+          chatName: history.chatName,
+          truncated: history.truncated,
+          count: history.messages.length,
+          range: formatRange(history),
+          stats: history.stats ? formatStats(history.stats) : '',
+          nextEndTime: history.nextEndTime ? String(history.nextEndTime) : '',
+          nextStartTime: history.nextStartTime ? String(history.nextStartTime) : '',
+          transcript: formatTranscript(history.messages),
+        }
       },
     }),
   )

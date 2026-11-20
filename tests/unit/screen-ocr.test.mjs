@@ -2,8 +2,11 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 import {
+  dropWatermarkLines,
+  joinCjkSpaces,
   parseFeishuPids,
   parseFeishuScreen,
+  parseTasklistOutput,
   preferFrontmost,
   screenTextLines,
 } from '../../packages/host-work/lib/index.js'
@@ -269,4 +272,83 @@ test('parseFeishuScreen refuses toolbar labels instead of naming the chat after 
   })
   assert.equal(focus.detected, false)
   assert.match(String(focus.error), /No Feishu conversation recognized/)
+})
+
+test('joinCjkSpaces restores words from Windows per-character OCR output', () => {
+  assert.equal(joinCjkSpaces('示 例 产 品 群'), '示例产品群')
+  assert.equal(joinCjkSpaces('群 里 今 天 基 本 定 位 了 ， 措 施 版 本'), '群里今天基本定位了，措施版本')
+  assert.equal(joinCjkSpaces('（ 19 ： 12 ）'), '（19：12）')
+  // Latin words keep their spaces, and mixed content keeps the boundary space.
+  assert.equal(joinCjkSpaces('Demo 产品 4K MODEL-A'), 'Demo 产品 4K MODEL-A')
+  assert.equal(joinCjkSpaces('DEMO2027 届 ． 答 疑 群'), 'DEMO2027 届．答疑群')
+})
+
+test('parseTasklistOutput finds Feishu windows among helper processes', () => {
+  const csv = [
+    '"Feishu.exe","32412","Console","1","210,000 K"',
+    '"Feishu.exe","30124","Console","1","98,000 K"',
+    '"Lark.exe","2088","Console","1","150,000 K"',
+    '"chrome.exe","9911","Console","1","300,000 K"',
+    '"DeepSeek Harness.exe","5712","Console","1","400,000 K"',
+    '"Feishu Helper.exe","4004","Console","1","10,000 K"',
+    '',
+  ].join('\r\n')
+  assert.deepEqual(parseTasklistOutput(csv), [32412, 30124, 2088])
+})
+
+test('dropWatermarkLines removes the diagonal watermark fragments', () => {
+  // Real Windows capture: messages are ~0.0158 tall, the watermark tiles read as
+  // ~0.009 tall lines scattered inside the pane, timestamps stay just above it.
+  const lines = [
+    { text: '示例消息甲：今天的验证已经做完', x: 0.44, y: 0.49, w: 0.14, h: 0.0158 },
+    { text: '示例消息乙：结论写进周报即可', x: 0.44, y: 0.63, w: 0.18, h: 0.017 },
+    { text: '示例消息丙：示例功能的说明', x: 0.44, y: 0.72, w: 0.18, h: 0.0189 },
+    { text: '示例消息丁：示例内容的补充说明', x: 0.44, y: 0.78, w: 0.14, h: 0.0158 },
+    { text: '20:57', x: 0.36, y: 0.24, w: 0.01, h: 0.0109 },
+    { text: '尸 户 《 单 ）', x: 0.4485, y: 0.2123, w: 0.0356, h: 0.0091 },
+    { text: '眈 ： OK 」 抟 幻 14', x: 0.4439, y: 0.2263, w: 0.0409, h: 0.0085 },
+    { text: '机 34M2 Y', x: 0.4439, y: 0.2391, w: 0.0397, h: 0.0091 },
+    { text: '0 加 诡 分 配 參', x: 0.4678, y: 0.1223, w: 0.0629, h: 0.0097 },
+    { text: '【示例产品群】订单问题', x: 0.25, y: 0.24, w: 0.09, h: 0.0158 },
+  ]
+  const kept = dropWatermarkLines(lines).map((line) => line.text)
+  assert.ok(kept.includes('示例消息甲：今天的验证已经做完'))
+  assert.ok(kept.includes('示例消息乙：结论写进周报即可'))
+  assert.ok(kept.includes('20:57'), 'timestamps stay above the threshold')
+  assert.ok(!kept.some((text) => /尸 户|抟 幻|加 诡/.test(text)), 'watermark fragments are gone')
+})
+
+test('preferTitle names the chat from the header on Windows', () => {
+  // Windows OCR reads the larger header title better than the composer hint.
+  const capture = {
+    imageWidth: 1613,
+    imageHeight: 822,
+    windowNumber: 1,
+    lines: [
+      { text: '示例联系人（Alex）', x: 0.43, y: 0.065, w: 0.081, h: 0.0219 },
+      { text: '发送给 示例联 w 霸、）', x: 0.41, y: 0.929, w: 0.097, h: 0.0158 },
+      { text: '示例消息乙：结论写进周报即可', x: 0.44, y: 0.63, w: 0.18, h: 0.017 },
+      { text: '收到', x: 0.44, y: 0.85, w: 0.02, h: 0.0158 },
+    ],
+  }
+  assert.equal(parseFeishuScreen(capture, { preferTitle: true }).chatName, '示例联系人（Alex）')
+  assert.equal(parseFeishuScreen(capture).chatName, '示例联 w 霸、）')
+})
+
+test('Windows header metadata does not become a message', () => {
+  const capture = {
+    imageWidth: 1613,
+    imageHeight: 822,
+    windowNumber: 1,
+    lines: [
+      { text: '示例联系人（Alex）', x: 0.43, y: 0.065, w: 0.081, h: 0.0219 },
+      { text: '示例科技-产品事业部-研发中心', x: 0.43, y: 0.095, w: 0.175, h: 0.0146 },
+      { text: '系统软件工程师', x: 0.62, y: 0.096, w: 0.044, h: 0.014 },
+      { text: '示例消息乙：结论写进周报即可', x: 0.44, y: 0.63, w: 0.18, h: 0.017 },
+      { text: '发送给 示例联系人', x: 0.41, y: 0.929, w: 0.097, h: 0.0158 },
+    ],
+  }
+  const focus = parseFeishuScreen(capture, { preferTitle: true })
+  assert.equal(focus.chatName, '示例联系人（Alex）')
+  assert.deepEqual(focus.messages, ['示例消息乙：结论写进周报即可'])
 })

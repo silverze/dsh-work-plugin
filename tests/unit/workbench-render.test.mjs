@@ -5,6 +5,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 
 import {
   DataSettings,
+  FeishuContextChip,
   FeishuSettingsShell,
   WorkGeneralSettings,
   WorkPanel,
@@ -58,4 +59,38 @@ test('data settings render export and destructive action', () => {
   )
   assert.match(html, /清空本地数据/)
   assert.match(html, /导出数据/)
+})
+
+/** The slice of WorkbenchController the composer row reads during a render. */
+function contextRowWorkbench(presence) {
+  const task = { id: 's1', title: '周报', status: 'running', outputs: [], createdAt: 1, updatedAt: 1 }
+  const index = new Map([[task.id, task]])
+  return {
+    subscribeIndex: () => () => {},
+    indexSnapshot: () => index,
+    subscribeCapabilities: () => () => {},
+    capabilitiesSnapshot: () => (presence === undefined ? undefined : { presence }),
+    subscribePresence: () => () => {},
+    presenceSnapshot: () => undefined,
+    subscribePresenceStyle: () => () => {},
+    presenceStyleSnapshot: () => 'dsh',
+  }
+}
+
+function renderChip(presence) {
+  return renderToStaticMarkup(
+    React.createElement(FeishuContextChip, {
+      sessionId: 's1',
+      workbench: contextRowWorkbench(presence),
+      notify: () => {},
+    }),
+  )
+}
+
+test('the Feishu chip is hidden on a Host without screen awareness', () => {
+  assert.equal(renderChip(false), '')
+  assert.match(renderChip(true), /飞书/)
+  // Before the capability answer arrives there is nothing to show either: the
+  // chip must not mount and immediately poll an endpoint that may not exist.
+  assert.equal(renderChip(undefined), '')
 })

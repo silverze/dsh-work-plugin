@@ -249,3 +249,45 @@ test('work mode attach/detach/remove/schedulePause map to remotes', async () => 
   assert.deepEqual(h.calls.find((call) => call.endpoint === 'work/attachSession').payload, { args: { request: { sessionId: 's1' } } })
   assert.deepEqual(h.calls.find((call) => call.endpoint === 'work/removeTask').payload, { args: { request: { taskId: 's1', confirm: 'DELETE' } } })
 })
+
+test('capabilities is read once and tells the UI whether presence exists', async () => {
+  let calls = 0
+  const h = makeCtx((endpoint) => {
+    calls += 1
+    if (endpoint === 'work/capabilities') return { ok: true, value: { presence: false } }
+    return { ok: false, error: { code: 'unexpected', message: endpoint } }
+  })
+  const controller = new WorkbenchController(h.ctx)
+  const seen = []
+  const unsubscribe = controller.subscribeCapabilities(() => seen.push(controller.capabilitiesSnapshot()))
+
+  assert.equal(controller.capabilitiesSnapshot(), undefined)
+  assert.deepEqual(await controller.loadCapabilities(), { presence: false })
+  assert.deepEqual(controller.capabilitiesSnapshot(), { presence: false })
+  assert.deepEqual(seen, [{ presence: false }])
+  assert.deepEqual(h.calls[0].payload, { args: { request: {} } })
+
+  // Cached: the platform does not change while the page is open.
+  assert.deepEqual(await controller.loadCapabilities(), { presence: false })
+  assert.equal(calls, 1)
+  unsubscribe()
+})
+
+test('a failed capabilities probe assumes the feature exists so an older Host keeps the chip', async () => {
+  let calls = 0
+  const h = makeCtx((endpoint) => {
+    calls += 1
+    if (calls === 1) return { ok: false, error: { code: 'gateway/unknown-method', message: endpoint } }
+    if (endpoint === 'work/capabilities') return { ok: true, value: { presence: true } }
+    return { ok: false, error: { code: 'unexpected', message: endpoint } }
+  })
+  const controller = new WorkbenchController(h.ctx)
+
+  assert.equal(controller.capabilitiesSnapshot(), undefined)
+  assert.deepEqual(await controller.loadCapabilities(), { presence: true })
+  assert.deepEqual(controller.capabilitiesSnapshot(), { presence: true })
+
+  // Not cached: the next call asks again, and a Host that answers false wins.
+  assert.deepEqual(await controller.loadCapabilities(), { presence: true })
+  assert.equal(calls, 2)
+})

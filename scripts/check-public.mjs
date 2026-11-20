@@ -2,26 +2,37 @@
 /**
  * Public-release guard.
  *
- * Fails when the tree still contains internal identifiers, personal data,
- * secret material, or packaging mistakes that would leak into npm.
+ * Fails when the tree still contains personal data, secret material, or
+ * packaging mistakes that would leak into npm.
+ *
+ * Site-specific identifiers (company, customers, colleagues, internal systems)
+ * are deliberately NOT listed in this file: the repository is public, so the
+ * blocklist itself would be the leak. Put them in
+ * `scripts/public-denylist.local.txt` — one JavaScript regular expression per
+ * line, `#` starts a comment — and git ignores that file:
+ *
+ *     # scripts/public-denylist.local.txt   (git-ignored, never committed)
+ *     some-internal-system
+ *     SomeCompanyName
+ *     a-colleague
+ *
+ * On a machine without that file the generic checks (PII, secrets, packaging)
+ * still run, so CI keeps working.
  *
  * Run: node scripts/check-public.mjs
  */
 import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 
-const FORBIDDEN = [
-  // 站点专属标识：见 scripts/public-denylist.local.txt（本地保留，不提交）
+/** Optional, never committed: site-specific patterns. */
+const DENYLIST_FILE = 'scripts/public-denylist.local.txt'
 
-
-
-
-
-
-
-
-
-
+/** Personal data that must never ship, whatever the project. */
+const PERSONAL = [
+  { pattern: /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/, label: '邮箱地址' },
+  { pattern: /(?<!\d)1[3-9]\d{9}(?!\d)/, label: '疑似手机号' },
+  { pattern: /\/Users\/[A-Za-z0-9._-]+/, label: 'macOS 绝对家目录路径' },
+  { pattern: /[A-Za-z]:\\Users\\[A-Za-z0-9._-]+/i, label: 'Windows 绝对家目录路径' },
 ]
 
 const SECRETS = [
@@ -42,7 +53,26 @@ const PUBLISHABLE = [
   'packages/skills-work/package.json',
 ]
 
+/** Read the optional local blocklist; a broken line is itself a problem. */
+function loadDenylist(problems) {
+  if (!existsSync(DENYLIST_FILE)) return []
+  const patterns = []
+  const lines = readFileSync(DENYLIST_FILE, 'utf8').split('\n')
+  lines.forEach((raw, index) => {
+    const line = raw.trim()
+    if (!line || line.startsWith('#')) return
+    try {
+      // Case-insensitive: a name is a name whatever its capitalisation.
+      patterns.push({ source: line, expression: new RegExp(line, 'i') })
+    } catch {
+      problems.push(`${DENYLIST_FILE}:${index + 1} 不是合法的正则：${line}`)
+    }
+  })
+  return patterns
+}
+
 const problems = []
+const denylist = loadDenylist(problems)
 const files = execFileSync('git', ['ls-files'], { encoding: 'utf8' }).split('\n').filter(Boolean)
 
 for (const file of files) {
@@ -53,15 +83,18 @@ for (const file of files) {
   } catch {
     continue
   }
-  const lines = text.split('\n')
-  lines.forEach((line, index) => {
-    for (const pattern of FORBIDDEN) {
-      if (pattern.test(line)) problems.push(`${file}:${index + 1} 内部标识 ${pattern}: ${line.trim().slice(0, 120)}`)
+  text.split('\n').forEach((line, index) => {
+    for (const { source, expression } of denylist) {
+      if (expression.test(line)) {
+        problems.push(`${file}:${index + 1} 站点标识 /${source}/: ${line.trim().slice(0, 120)}`)
+      }
+    }
+    for (const { pattern, label } of PERSONAL) {
+      if (pattern.test(line)) problems.push(`${file}:${index + 1} ${label}: ${line.trim().slice(0, 120)}`)
     }
     for (const pattern of SECRETS) {
       if (pattern.test(line)) problems.push(`${file}:${index + 1} 疑似密钥 ${pattern}`)
     }
-    if (/\/Users\/[A-Za-z0-9._-]+/.test(line)) problems.push(`${file}:${index + 1} 绝对家目录路径`)
   })
 }
 
@@ -92,4 +125,7 @@ if (problems.length > 0) {
   for (const problem of problems) console.error(`  - ${problem}`)
   process.exit(1)
 }
-console.log(`check-public: ${files.length} 个文件通过`)
+if (denylist.length === 0) {
+  console.log(`check-public: 未配置 ${DENYLIST_FILE}（站点专属黑名单可选，见脚本头注释）`)
+}
+console.log(`check-public: ${files.length} 个文件通过，${denylist.length} 条站点黑名单规则`)

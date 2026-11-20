@@ -73,7 +73,10 @@ export function apply(ctx: Context, config: Config = {}): void {
   }
 }
 
-export { FeishuHttpClient } from './feishu-client.js'
+export { FeishuHttpClient, messageText, resolveChatByName } from './feishu-client.js'
+export { formatTranscript, readChatHistory } from './im-history.js'
+export type { ChatHistoryInput, ChatHistoryResult } from './im-history.js'
+export type { FeishuChatMessage, FeishuChatSummary } from './feishu-client.js'
 export { FeishuError, mapFeishuError } from './errors.js'
 export { registerFeishuTools } from './tools.js'
 export { registerFeishuShareTool } from './share-tools.js'

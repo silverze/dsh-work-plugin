@@ -124,6 +124,14 @@ export function FeishuContextChip({
 }: FeishuContextChipProps): React.ReactElement | null {
   const task = useWorkTask(workbench, sessionId)
   const enabled = Boolean(task)
+  // Presence is macOS-only. `undefined` means the Host has not answered yet, so
+  // the chip waits one short RPC instead of mounting and immediately failing.
+  const capabilities = React.useSyncExternalStore(
+    workbench.subscribeCapabilities,
+    workbench.capabilitiesSnapshot,
+    workbench.capabilitiesSnapshot,
+  )
+  const presenceSupported = capabilities?.presence === true
   const snapshot = React.useSyncExternalStore(
     workbench.subscribePresence,
     workbench.presenceSnapshot,
@@ -139,6 +147,10 @@ export function FeishuContextChip({
   const rootRef = React.useRef<HTMLSpanElement | null>(null)
   const caretRef = React.useRef<HTMLButtonElement | null>(null)
   const menuRef = React.useRef<HTMLDivElement | null>(null)
+
+  React.useEffect(() => {
+    void workbench.loadCapabilities()
+  }, [workbench])
 
   React.useEffect(() => {
     if (!enabled) return
@@ -161,7 +173,7 @@ export function FeishuContextChip({
   // a click back into DSH or into the composer asks for a fresh read, and a
   // slow poll keeps up with chat switches while Feishu stays in front.
   React.useEffect(() => {
-    if (!enabled) return
+    if (!enabled || !presenceSupported) return
     let last = 0
     const read = (force: boolean, visible: boolean): void => {
       const now = Date.now()
@@ -200,7 +212,7 @@ export function FeishuContextChip({
       document.removeEventListener('visibilitychange', onVisibility)
       window.removeEventListener('focus', onWindowFocus)
     }
-  }, [enabled, refresh, workbench])
+  }, [enabled, presenceSupported, refresh, workbench])
 
   // Dismiss the popover like any other menu: click outside or Escape, with
   // arrow keys moving between the rows.
@@ -254,7 +266,10 @@ export function FeishuContextChip({
     [inputActions, notify],
   )
 
-  if (!enabled) return null
+  // Outside work mode there is nothing to quote into; on a Host without screen
+  // awareness the chip would only ever report "not supported". While the
+  // capability read is still in flight there is nothing to show yet either.
+  if (!enabled || !presenceSupported) return null
 
   const detected = snapshot?.detected === true
   // When the current screen cannot be read (Feishu on another Space, permission

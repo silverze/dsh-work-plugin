@@ -17,3 +17,5 @@ profiles/work/dev.patch.yml
 packages/bundle/vendor/
 .tmp-pack-home/
 .tmp-script-home/
+# 站点专属黑名单（含公司/同事等标识），只在本机存在
+scripts/public-denylist.local.txt

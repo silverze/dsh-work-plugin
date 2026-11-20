@@ -48,9 +48,12 @@ export async function apply(ctx: Context, config: Config = {}): Promise<void> {
   ctx.provide('workTasks', service)
   ctx.provide('workArtifacts', service.artifacts)
   // One presence snapshot serves both the model tools and the composer chip, so
-  // the two never race for the screen or compile the OCR helper twice.
+  // the two never race for the screen or compile the OCR helper twice. Screen
+  // reading exists on macOS (Swift + Vision) and Windows (accessibility tree,
+  // OCR fallback); other hosts keep the tools off instead of failing every call.
+  const screenReading = process.platform === 'darwin' || process.platform === 'win32'
   const presence =
-    config.presence === false || process.platform !== 'darwin'
+    config.presence === false || !screenReading
       ? undefined
       : new FeishuPresenceService({ isForeground: isFeishuForeground })
   if (config.remote !== false) new WorkRemoteService(ctx, service, presence)
@@ -156,18 +159,24 @@ export { registerPresenceTools } from './presence-tools.js'
 export type { FeishuFocus, FocusCandidate, PresenceApp } from './presence.js'
 export {
   captureApp,
+  captureFeishuWindow,
   describeCaptureFailure,
+  dropWatermarkLines,
   ensureOcrBinary,
+  ensureWindowsHelper,
   findFeishuPids,
+  joinCjkSpaces,
   listWindows,
   ocrBinaryPath,
   parseFeishuPids,
   parseFeishuScreen,
+  parseTasklistOutput,
   preferFrontmost,
   screenTextLines,
 } from './screen-ocr.js'
 export type { FeishuScreenFocus, ScreenCapture, ScreenLine, WindowCandidate } from './screen-ocr.js'
 export { WorkTaskService } from './work-task-service.js'
+export { WORK_REMOTE_METHODS, WorkRemoteService, workCapabilities } from './work-remote.js'
 export { workDomain } from './domain.js'
 export type {
   Artifact,

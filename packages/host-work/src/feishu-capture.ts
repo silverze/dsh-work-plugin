@@ -9,6 +9,7 @@
 import { frontmostPid } from './presence.js'
 import {
   captureApp,
+  captureFeishuWindow,
   describeCaptureFailure,
   findFeishuPids,
   frontmostNativePid,
@@ -42,7 +43,38 @@ export interface FeishuCaptureOptions {
 export async function captureFeishuFocus(
   options: FeishuCaptureOptions = {},
 ): Promise<FeishuFocusSnapshot> {
+  // Windows renders the chat name larger in the header than in the composer
+  // placeholder, so the header is the better read there; macOS keeps the composer.
+  const parseOptions = {
+    maxMessages: options.maxMessages,
+    preferTitle: process.platform === 'win32',
+  }
   try {
+    // Windows: one helper run picks the Feishu window and reads it. A pid list
+    // cannot help there, because every helper process is also called Feishu.exe.
+    if (process.platform === 'win32' && !options.pid) {
+      try {
+        const capture = await captureFeishuWindow()
+        if (capture.onScreen === false) {
+          return failure(
+            'Feishu is running but its window is minimized; restore it and retry',
+          )
+        }
+        const focus = parseFeishuScreen(capture, parseOptions)
+        if (focus.detected) {
+          return {
+            detected: true,
+            chatName: focus.chatName ?? '',
+            chatKind: focus.chatKind,
+            messages: focus.messages,
+            otherChats: focus.otherChats,
+          }
+        }
+      } catch {
+        // Fall through to the pid-based path (explicit pid, or a renamed client).
+      }
+    }
+
     const discovered = options.pid ? [options.pid] : await findFeishuPids()
     // The native helper needs no Automation permission; AppleScript is only a
     // fallback for machines where the helper cannot be built or run.
@@ -67,7 +99,7 @@ export async function captureFeishuFocus(
           )
           continue
         }
-        const focus = parseFeishuScreen(capture, { maxMessages: options.maxMessages })
+        const focus = parseFeishuScreen(capture, parseOptions)
         if (focus.detected) {
           return {
             detected: true,
@@ -86,7 +118,7 @@ export async function captureFeishuFocus(
         for (const sibling of siblings) {
           const other = await captureApp(pid, sibling.windowNumber).catch(() => undefined)
           if (!other) continue
-          const parsed = parseFeishuScreen(other, { maxMessages: options.maxMessages })
+          const parsed = parseFeishuScreen(other, parseOptions)
           if (!parsed.detected) continue
           return {
             detected: true,

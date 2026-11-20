@@ -18,7 +18,7 @@
 
 </div>
 
-DSH Work 给 [DeepSeek Harness](https://github.com/deepseek-ai) 加了一层「工作」能力：一个会话可以挂到一条**工作任务**上，任务比对话活得久，有自己的成果库，能定时重跑；在 macOS 上还能把你正在看的飞书会话一键引用进输入框。
+DSH Work 给 [DeepSeek Harness](https://github.com/deepseek-ai) 加了一层「工作」能力：一个会话可以挂到一条**工作任务**上，任务比对话活得久，有自己的成果库，能定时重跑；在 macOS / Windows 上还能把你正在看的飞书会话一键引用进输入框。
 
 它是插件 bundle，不是 fork：关掉之后，DeepSeek Harness 还是原来的样子。
 
@@ -27,7 +27,7 @@ DSH Work 给 [DeepSeek Harness](https://github.com/deepseek-ai) 加了一层「�
 - **工作模式，不是又一个预设。** 只对当前会话生效，默认预设、其他插件和你的设置都不动。
 - **成果不随对话消失。** 产出统一收进任务的成果库（docx、pptx、xlsx、图片），几个月后还能从面板打开。
 - **重复的活自己跑。** 给任务挂定时（日报、周报），由宿主按时触发。
-- **飞书是一等公民。** 14 个面向模型的飞书工具覆盖文档、表格、知识库、消息和云空间；macOS 下还有输入框上方的飞书会话引用 chip。
+- **飞书是一等公民。** 15 个面向模型的飞书工具覆盖文档、表格、知识库、消息和云空间（含按群名读取完整聊天记录）；macOS / Windows 下还有输入框上方的飞书会话引用 chip。
 
 ## 安装
 
@@ -66,6 +66,8 @@ CLI 只会链接这一个目录，bundle 依赖的 host、client、飞书、技�
 | macOS 13+ | 飞书会话 chip 与屏幕文本工具需要 |
 | Xcode 命令行工具 | 首次读屏用 `swiftc` 编译，约 25 秒，之后走缓存 |
 | 屏幕录制权限 | 首次读屏时 macOS 会弹一次授权 |
+| Windows 10+ | 同样的 chip 与屏幕文本工具，无需任何权限。优先读 Chromium 无障碍树拿到精确文本，树为空时回退到系统自带 OCR（需中文/英文语言包） |
+| Windows SDK（可选） | Windows 助手用 .NET Framework 的 `csc` 对着 SDK 的 `Windows.winmd` 编译（约 0.5 秒，之后走缓存）。没有 SDK 时回退到随包提供的 PowerShell 助手：输出一致，每次读屏慢约 2 秒 |
 | 飞书自建应用凭据 | 仅飞书工具需要，见 [docs/feishu-app-setup.md](docs/feishu-app-setup.md) |
 
 ## 快速开始
@@ -78,7 +80,7 @@ CLI 只会链接这一个目录，bundle 依赖的 host、client、飞书、技�
 
 <img src="assets/screenshot-2.png" alt="任务的成果库" width="880">
 
-## 飞书会话引用（macOS）
+## 飞书会话引用（macOS / Windows）
 
 开启工作模式后，输入框上方会出现一个 chip，显示你最近看的飞书会话：
 
@@ -86,7 +88,7 @@ CLI 只会链接这一个目录，bundle 依赖的 host、client、飞书、技�
 
 - **点主体**：插入引用块，包含会话名、读取时间和屏幕上的可见消息。
 - **点 ▾**：从最近会话里挑一个，或强制重新读取。
-- chip 会在飞书处于前台时**跟随**当前聚焦会话（单次读屏约 1.2 秒，最快每 2.5 秒一次）。
+- chip 会在飞书处于前台时**跟随**当前聚焦会话（单次读屏 macOS 约 1.2 秒、Windows 约 1.5-2 秒，最快每 2.5 秒一次）。
 - 读不到时（飞书最小化、在别的桌面、权限被撤销）保留上次会话并标**上次**，依然可以引用。
 - OCR 只在本机执行，识别文本只进入当前会话，本插件不上传任何内容。三套外观在**设置 → 飞书 → 偏好**里切换。
 
@@ -100,7 +102,7 @@ CLI 只会链接这一个目录，bundle 依赖的 host、client、飞书、技�
 | 成果库 | `work_artifact_list`、`work_artifact_get`、`work_artifact_scan` |
 | 屏幕感知 | `work_frontmost_app`、`work_screen_text`、`work_feishu_screen`、`work_feishu_focus` |
 | 诊断 | `work_ping` |
-| 飞书 | `feishu_auth_start`、`feishu_auth_status`、`feishu_auth_disconnect`、`feishu_whoami`、`feishu_doc_create`、`feishu_doc_read`、`feishu_doc_append`、`feishu_wiki_get`、`feishu_sheet_read`、`feishu_sheet_write`、`feishu_sheet_append`、`feishu_im_send`、`feishu_drive_upload`、`feishu_share_artifact` |
+| 飞书 | `feishu_auth_start`、`feishu_auth_status`、`feishu_auth_disconnect`、`feishu_whoami`、`feishu_doc_create`、`feishu_doc_read`、`feishu_doc_append`、`feishu_wiki_get`、`feishu_sheet_read`、`feishu_sheet_write`、`feishu_sheet_append`、`feishu_im_send`、`feishu_im_history`、`feishu_drive_upload`、`feishu_share_artifact` |
 
 ### 技能
 
@@ -147,7 +149,7 @@ packages/skills-work   七个内置技能
 | --- | --- | --- | --- |
 | macOS 13+ | 支持 | 支持 | 支持（需屏幕录制 + Xcode CLT） |
 | Linux | 支持 | 支持 | 不支持，工具会返回可行动提示 |
-| Windows | 支持 | 支持 | 不支持 |
+| Windows 10+ | 支持 | 支持 | 支持（优先读 Chromium 无障碍树拿精确文本，OCR 兜底，均无需授权） |
 
 常见问题：
 

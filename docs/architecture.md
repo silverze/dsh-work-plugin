@@ -18,7 +18,7 @@
 │ client-work: 工作台 | 成果库 | 设置   (main slot / sidebar / settings) │
 │        │ Typert Remote                                            │
 │ host-work: WorkTask | ArtifactLibrary | WorkSchedule | WorkNotify │
-│ host-feishu: FeishuAuth | FeishuClient | 14 tools                 │
+│ host-feishu: FeishuAuth | FeishuClient | 15 tools                 │
 │        │                                                          │
 │ DSH core: agent-loop | sessions | tools | skills | schedule |     │
 │           credentials | authorization | otel                      │
@@ -39,7 +39,7 @@
 |---|---|---|
 | `@dsh-work-plugin/bundle` | bundle | patch 层、profile 入口、默认配置、展示元数据与 detail 文档 |
 | `@dsh-work-plugin/host` | host | 任务/成果/定时绑定/通知；`storageDomain` 三表；Remote `work/*` |
-| `@dsh-work-plugin/feishu` | host | OAuth、token 刷新、OpenAPI 客户端、14 个工具、频控、审计 |
+| `@dsh-work-plugin/feishu` | host | OAuth、token 刷新、OpenAPI 客户端、15 个工具（含按群名读历史）、频控、审计 |
 | `@dsh-work-plugin/client` | client | 工作台、任务详情、成果库、设置卡片 |
 | `@dsh-work-plugin/skills` | host | 内置技能 provider：注册 7 个 SKILL.md，路径锚定包内 |
 | `tests/e2e` | test | Mock 飞书 + Playwright |
@@ -173,8 +173,8 @@ authorize → state+PKCE → 浏览器授权 → loopback callback
 
 ## 10. 已知限制
 
-- 屏幕感知只在 macOS 上可用；Linux/Windows 下相关工具返回可行动提示，其余能力正常。
+- 屏幕感知在 macOS 与 Windows 上可用，两边共用一个 TypeScript 解析层：`native/screen-ocr.swift`（CGWindowList + `screencapture -l` + Vision OCR）与 `native/screen-ocr-win.cs`（Windows 上优先读 Chromium 渲染窗口的 UI Automation 树拿精确文本，树为空时用 `PrintWindow(PW_RENDERFULLCONTENT)` + `Windows.Media.Ocr`），命令行与 JSON 完全一致（`--list` / `--frontmost` / `--feishu` / `<pid> [window]`），行坐标都是归一化分数。Linux 下宿主不创建 presence 服务、不注册 4 个屏幕工具，并通过 `work/capabilities` 返回 `presence: false`，客户端据此不渲染飞书 chip、也不轮询；其余能力正常。
 - CGWindowList 只列当前桌面的窗口：飞书最小化或切到别的 Space 时读不到，chip 会保留上一次快照并标记「上次」。
-- 读屏依赖屏幕录制权限与 Xcode 命令行工具；首次使用需用 `swiftc` 编译 helper（约 25 秒，之后走缓存）。
+- 读屏在 macOS 上依赖屏幕录制权限与 Xcode 命令行工具，首次使用用 `swiftc` 编译 helper（约 25 秒，之后走缓存）。Windows 上不需要任何授权，用 .NET Framework 的 `csc` 编译 `screen-ocr-win.cs`（约 0.5 秒，需已装 Windows SDK 的 `Windows.winmd`）；没有 SDK 时自动回退到 `screen-ocr.ps1`（PowerShell + WinRT OCR，同样输出，每次读屏慢约 2 秒）。Windows OCR 会把中文逐字加空格，宿主用 `joinCjkSpaces` 还原成词。
 - 引用的是屏幕可见消息（OCR），不是飞书全量历史；OCR 对贴纸、表格与折行会出噪声，宿主会过滤明显碎片，但内容仍应按不可信输入对待。
 - 插件使用 DSH 的预发布接口，peer 范围显式限定在 `>=0.2.2-rc.2 <0.3.0`；DSH 升级到 0.3 之前需要重新验证。

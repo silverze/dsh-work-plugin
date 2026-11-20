@@ -12,6 +12,15 @@ import { TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import type { FeishuPresenceService } from './feishu-presence.js'
 import type { WorkTaskService } from './work-task-service.js'
 
+/**
+ * Feature flags the client may rely on. Screen awareness exists on macOS and
+ * Windows, so a profile without the presence service must say so instead of
+ * letting the chip poll an endpoint that can only reject.
+ */
+export function workCapabilities(presence: unknown): { presence: boolean } {
+  return { presence: presence !== undefined }
+}
+
 export class WorkRemoteService extends TypertRemoteService {
   constructor(
     ctx: Context,
@@ -19,6 +28,11 @@ export class WorkRemoteService extends TypertRemoteService {
     private readonly presence?: FeishuPresenceService,
   ) {
     super(ctx, 'workRemote', { namespace: 'work' })
+  }
+
+  async capabilities(request: Record<string, never>) {
+    void request
+    return workCapabilities(this.presence)
   }
 
   async presenceCapture(request: { force?: boolean }) {
@@ -146,33 +160,37 @@ export class WorkRemoteService extends TypertRemoteService {
 
 // Typert stores method markers under this string key on the prototype. The
 // decorator form is equivalent; writing the descriptor avoids needing the
-// build pipeline to transform standard decorators.
+// build pipeline to transform standard decorators. Every public method above
+// must be listed here or the client gets "unknown method".
+export const WORK_REMOTE_METHODS = [
+  'attachSession',
+  'detachSession',
+  'exportTask',
+  'removeTask',
+  'schedulePause',
+  'taskCreate',
+  'taskList',
+  'taskGet',
+  'taskPrompt',
+  'taskCancel',
+  'taskSchedule',
+  'artifactList',
+  'artifactScan',
+  'exportData',
+  'clearData',
+  'scheduleRun',
+  'settingsGet',
+  'settingsSet',
+  'schedule',
+  'capabilities',
+  'presenceCapture',
+] as const
+
 Object.defineProperty(WorkRemoteService.prototype, '@deepseek-ai/dsh-typert-protocol/remote-methods', {
   configurable: true,
   value: {
     version: 1,
-    methods: [
-      'attachSession',
-      'detachSession',
-      'exportTask',
-      'removeTask',
-      'schedulePause',
-      'taskCreate',
-      'taskList',
-      'taskGet',
-      'taskPrompt',
-      'taskCancel',
-      'taskSchedule',
-      'artifactList',
-      'artifactScan',
-      'exportData',
-      'clearData',
-      'scheduleRun',
-      'settingsGet',
-      'settingsSet',
-      'schedule',
-      'presenceCapture',
-    ].map(
+    methods: WORK_REMOTE_METHODS.map(
       (method) => ({ method, invocation: { kind: 'direct' as const } }),
     ),
   },

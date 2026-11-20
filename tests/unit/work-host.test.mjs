@@ -4,7 +4,7 @@ import { mkdtemp, mkdir, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { apply } from '../../packages/host-work/lib/index.js'
+import { apply, WORK_REMOTE_METHODS, WorkRemoteService, workCapabilities } from '../../packages/host-work/lib/index.js'
 
 function fakeTable() {
   const rows = new Map()
@@ -377,7 +377,7 @@ test('new_once reserves a companion task and repoints the schedule prompt', asyn
     assert.ok(reserved)
     assert.equal(reserved.scheduleId, 'sch-2')
     assert.equal(reserved.notifyChatId, 'oc_1')
-    assert.equal(reserved.artifactDir, `${artifactRoot}/reserved-1`)
+    assert.equal(reserved.artifactDir, join(artifactRoot, 'reserved-1'))
     assert.equal(h.tables.tasks.get('sess-1').scheduleId, 'sch-2')
     assert.equal(h.scheduleEdits.length, 1)
     assert.equal(h.scheduleEdits[0].request.id, 'sch-2')
@@ -534,4 +534,20 @@ test('first user message gives a generic work task a readable title', async () =
     assert.equal(task.goal, '整理本周销售数据并生成周报')
     assert.equal(h.renames.at(-1).title, '[Work] 整理本周销售数据并生成周报')
   })
+})
+
+test('capabilities reports presence only when the Host has the screen reader', () => {
+  assert.deepEqual(workCapabilities(undefined), { presence: false })
+  assert.deepEqual(workCapabilities({ capture: () => undefined }), { presence: true })
+
+  // The client reaches methods through the Typert descriptor: a method missing
+  // from that list answers "unknown method" even though it exists on the class.
+  const descriptor = Object.getOwnPropertyDescriptor(
+    WorkRemoteService.prototype,
+    '@deepseek-ai/dsh-typert-protocol/remote-methods',
+  )
+  const listed = descriptor.value.methods.map((entry) => entry.method)
+  assert.deepEqual(listed, [...WORK_REMOTE_METHODS])
+  assert.ok(listed.includes('capabilities'))
+  assert.equal(typeof WorkRemoteService.prototype.capabilities, 'function')
 })
