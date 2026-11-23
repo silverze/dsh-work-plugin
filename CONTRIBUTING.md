@@ -41,7 +41,7 @@ docs                   architecture, compatibility, release notes
 
 ## Adding a tool
 
-1. Define it in the owning host package (`packages/host-work/src/tools.ts` or `packages/host-feishu/src/...`) with a zod schema and a short model-facing description.
+1. Define it in the owning host package (`packages/host-work/src/tools.ts` or `packages/host-feishu/src/...`) with a JSON-Schema parameter block (`defineTool({ parameters, output })`) and a short model-facing description.
 2. If the client needs it, add a remote method in `work-remote.ts` and include the name in the `remote-methods` list at the bottom of that file.
 3. Add a unit test. Tool descriptions are product surface: say what the tool does, when to use it, and its cost.
 

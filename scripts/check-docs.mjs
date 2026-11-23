@@ -11,7 +11,15 @@ import { dirname, resolve } from 'node:path'
 
 const files = execFileSync('git', ['ls-files'], { encoding: 'utf8' })
   .split('\n')
-  .filter((file) => file.endsWith('.md') && (file === 'README.md' || file === 'README.zh.md' || file.startsWith('docs/')))
+  .filter(
+    (file) =>
+      file.endsWith('.md') &&
+      (file === 'README.md' ||
+        file === 'README.zh.md' ||
+        file === 'AGENTS.md' ||
+        file === 'CONTRIBUTING.md' ||
+        file.startsWith('docs/')),
+  )
 
 const problems = []
 for (const file of files) {
