@@ -18,7 +18,7 @@
 │ client-work: 工作台 | 成果库 | 设置   (main slot / sidebar / settings) │
 │        │ Typert Remote                                            │
 │ host-work: WorkTask | ArtifactLibrary | WorkSchedule | WorkNotify │
-│ host-feishu: FeishuAuth | FeishuClient | 15 tools                 │
+│ host-feishu: FeishuAuth | FeishuClient | 21 tools                 │
 │        │                                                          │
 │ DSH core: agent-loop | sessions | tools | skills | schedule |     │
 │           credentials | authorization | otel                      │
@@ -39,7 +39,7 @@
 |---|---|---|
 | `@dsh-work-plugin/bundle` | bundle | patch 层、profile 入口、默认配置、展示元数据与 detail 文档 |
 | `@dsh-work-plugin/host` | host | 任务/成果/定时绑定/通知；`storageDomain` 三表；Remote `work/*` |
-| `@dsh-work-plugin/feishu` | host | OAuth、token 刷新、OpenAPI 客户端、15 个工具（含按群名读历史）、频控、审计 |
+| `@dsh-work-plugin/feishu` | host | OAuth、token 刷新、OpenAPI 客户端、21 个工具（含按群名读历史、任务/日历/妙记、只读逃逸口）、频控、审计 |
 | `@dsh-work-plugin/client` | client | 工作台、任务详情、成果库、设置卡片 |
 | `@dsh-work-plugin/skills` | host | 内置技能 provider：注册 7 个 SKILL.md，路径锚定包内 |
 | `tests/e2e` | test | Mock 飞书 + Playwright |

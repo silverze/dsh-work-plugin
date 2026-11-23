@@ -27,7 +27,7 @@ It is a plugin bundle, not a fork: when you turn it off, DeepSeek Harness is exa
 - **Work mode is a preset.** Pick it in the mode picker when starting a session and the session attaches to a tracked work task; other sessions, the default preset and your settings stay untouched.
 - **Deliverables outlive the chat.** Every output is copied into the task's artifact library — docx, pptx, xlsx, images — openable from the panel months later.
 - **Recurring work runs itself.** Attach a schedule (daily report, weekly summary) to a task and let the host trigger it.
-- **Feishu is a first-class surface.** 15 model-facing Feishu tools for docs, sheets, wiki, IM and drive, including full chat history by chat name, and on macOS/Windows a composer chip that quotes the conversation currently on your screen.
+- **Feishu is a first-class surface.** 21 model-facing Feishu tools for docs, sheets, wiki, IM, drive, tasks, calendar and minutes, including full chat history by chat name, a read-only `feishu_api` escape hatch, dry-run previews for every write, and on macOS/Windows a composer chip that quotes the conversation currently on your screen.
 
 ## Install
 
@@ -105,7 +105,7 @@ OCR runs locally. The recognized text goes to the current session only; this plu
 | Artifacts | `work_artifact_list`, `work_artifact_get`, `work_artifact_scan` |
 | Screen awareness | `work_frontmost_app`, `work_screen_text`, `work_feishu_screen`, `work_feishu_focus` |
 | Diagnostics | `work_ping` |
-| Feishu | `feishu_auth_start`, `feishu_auth_status`, `feishu_auth_disconnect`, `feishu_whoami`, `feishu_doc_create`, `feishu_doc_read`, `feishu_doc_append`, `feishu_wiki_get`, `feishu_sheet_read`, `feishu_sheet_write`, `feishu_sheet_append`, `feishu_im_send`, `feishu_im_history`, `feishu_drive_upload`, `feishu_share_artifact` |
+| Feishu | `feishu_auth_start`, `feishu_auth_status`, `feishu_auth_disconnect`, `feishu_whoami`, `feishu_doc_create`, `feishu_doc_read`, `feishu_doc_append`, `feishu_wiki_get`, `feishu_sheet_read`, `feishu_sheet_write`, `feishu_sheet_append`, `feishu_im_send`, `feishu_im_history`, `feishu_drive_upload`, `feishu_share_artifact`, `feishu_api`, `feishu_task_create`, `feishu_task_complete`, `feishu_task_list_mine`, `feishu_calendar_agenda`, `feishu_minutes_get` |
 
 ### Skills
 

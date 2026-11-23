@@ -6,6 +6,24 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Feishu write tools can be previewed: every one takes `dryRun: true`, which
+  returns the exact request it would have sent and makes no API call. The
+  approval gate lets a dry run through, because nothing leaves the machine.
+- `feishu_auth_status` now reports the granted scopes and every tool whose scope
+  is missing, so a partially approved app shows up before the first failing
+  call instead of as a 403.
+- `feishu_api` reads any allowlisted `/open-apis/` GET path (bitable, okr,
+  approval, attendance, …) as the connected user, covering the long tail without
+  one tool per endpoint. Writes still require a dedicated tool.
+- Task, calendar and minutes tools: `feishu_task_create`, `feishu_task_complete`,
+  `feishu_task_list_mine`, `feishu_calendar_agenda` and `feishu_minutes_get`.
+  The two task writes join the approval gate; the reads are read-only. Their four
+  OAuth scopes (`task:task:write`, `task:task:read`, `calendar:calendar:read`,
+  `minutes:minutes:readonly`) stay opt-in through `FEISHU_SCOPES`, so a tenant
+  that only wants the document tools is not asked for them.
+
 ### Changed
 
 - CI publishes without a stored token: `release.yml` now relies on trusted

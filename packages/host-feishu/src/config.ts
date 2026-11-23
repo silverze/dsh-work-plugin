@@ -18,6 +18,10 @@ export const DEFAULT_SCOPES = [
   'offline_access',
   // Optional: only needed when the timeline/wiki tools are used.
   'wiki:wiki',
+  // The task, calendar and minutes tools need four more scopes — `task:task:write`,
+  // `task:task:read`, `calendar:calendar:read`, `minutes:minutes:readonly`. They are
+  // not requested by default; add them to FEISHU_SCOPES when you want those tools.
+  // feishu_auth_status names every tool a grant is missing a scope for.
 ] as const
 
 export type FeishuBrand = 'feishu' | 'lark'

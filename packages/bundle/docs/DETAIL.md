@@ -16,8 +16,9 @@ schedule after the conversation ends, and can hand results to Feishu.
 - **Artifact library.** Every deliverable is indexed with size, hash and version,
   and opens from the panel later.
 - **Schedules.** A task can rerun on an RRULE; the host triggers it while DSH runs.
-- **Feishu tools.** 15 model-facing tools for docs, sheets, wiki, IM, drive and
-  artifact sharing, using a Feishu user token.
+- **Feishu tools.** 21 model-facing tools for docs, sheets, wiki, IM, drive, tasks,
+  calendar, minutes and artifact sharing, using a Feishu user token. Writes take
+  `dryRun`, and `feishu_api` reads the endpoints the typed tools do not cover.
 - **Feishu conversation context (macOS and Windows 10+).** A composer chip quotes
   the Feishu chat currently on screen, follows the focused chat while Feishu is in
   front, and offers three appearances (DSH default, Codex, Claude).

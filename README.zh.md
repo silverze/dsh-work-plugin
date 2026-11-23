@@ -27,7 +27,7 @@ DSH Work 给 [DeepSeek Harness](https://github.com/deepseek-ai) 加了一层「�
 - **工作模式就是一个预设。** 新建会话时在模式选择器里选「工作模式」，会话即挂到一条可追踪的工作任务上；其他会话、默认预设和你的设置都不动。
 - **成果不随对话消失。** 产出统一收进任务的成果库（docx、pptx、xlsx、图片），几个月后还能从面板打开。
 - **重复的活自己跑。** 给任务挂定时（日报、周报），由宿主按时触发。
-- **飞书是一等公民。** 15 个面向模型的飞书工具覆盖文档、表格、知识库、消息和云空间（含按群名读取完整聊天记录）；macOS / Windows 下还有输入框上方的飞书会话引用 chip。
+- **飞书是一等公民。** 21 个面向模型的飞书工具覆盖文档、表格、知识库、消息、云空间、任务、日历与妙记（含按群名读取完整聊天记录）；写操作都支持 `dryRun` 预演，另有只读的 `feishu_api` 逃生口；macOS / Windows 下还有输入框上方的飞书会话引用 chip。
 
 ## 安装
 
@@ -102,7 +102,7 @@ CLI 只会链接这一个目录，bundle 依赖的 host、client、飞书、技�
 | 成果库 | `work_artifact_list`、`work_artifact_get`、`work_artifact_scan` |
 | 屏幕感知 | `work_frontmost_app`、`work_screen_text`、`work_feishu_screen`、`work_feishu_focus` |
 | 诊断 | `work_ping` |
-| 飞书 | `feishu_auth_start`、`feishu_auth_status`、`feishu_auth_disconnect`、`feishu_whoami`、`feishu_doc_create`、`feishu_doc_read`、`feishu_doc_append`、`feishu_wiki_get`、`feishu_sheet_read`、`feishu_sheet_write`、`feishu_sheet_append`、`feishu_im_send`、`feishu_im_history`、`feishu_drive_upload`、`feishu_share_artifact` |
+| 飞书 | `feishu_auth_start`、`feishu_auth_status`、`feishu_auth_disconnect`、`feishu_whoami`、`feishu_doc_create`、`feishu_doc_read`、`feishu_doc_append`、`feishu_wiki_get`、`feishu_sheet_read`、`feishu_sheet_write`、`feishu_sheet_append`、`feishu_im_send`、`feishu_im_history`、`feishu_drive_upload`、`feishu_share_artifact`、`feishu_api`、`feishu_task_create`、`feishu_task_complete`、`feishu_task_list_mine`、`feishu_calendar_agenda`、`feishu_minutes_get` |
 
 ### 技能
 

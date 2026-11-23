@@ -5,6 +5,7 @@ import type { ContentBlock } from '@deepseek-ai/dsh-llm'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 
 import type { FeishuAuthService } from './auth.js'
+import { grantedScopes, missingScopes } from './scopes.js'
 
 function text(value: string): ContentBlock {
   return { type: 'text', text: value }
@@ -17,8 +18,11 @@ function describeStatus(value: {
   name?: string
   openId?: string
   refreshExpiresAt?: number
+  scopes?: string[]
+  missingScopes?: Array<{ tool?: string; scopes?: string[] } | undefined>
 }): string {
   const who = value.name ?? value.openId ?? 'unknown user'
+  const gaps = describeGaps(value.missingScopes ?? [])
   if (!value.connected) {
     const why =
       value.reason === 'refresh_expired'
@@ -32,9 +36,18 @@ function describeStatus(value: {
     const until = value.refreshExpiresAt
       ? `; the refresh token is valid until ${new Date(value.refreshExpiresAt).toISOString()}`
       : ''
-    return `Feishu connected as ${who}, but the access token has expired and will be refreshed on the next call${until}.`
+    return `Feishu connected as ${who}, but the access token has expired and will be refreshed on the next call${until}.${gaps}`
   }
-  return `Feishu connected as ${who}`
+  return `Feishu connected as ${who}.${gaps}`
+}
+
+/** Scope gaps as prose; empty when every tool can run. */
+function describeGaps(gaps: Array<{ tool?: string; scopes?: string[] } | undefined>): string {
+  const lines = gaps
+    .filter((gap): gap is { tool?: string; scopes?: string[] } => gap !== undefined)
+    .map((gap) => `  ${gap.tool ?? 'unknown tool'}: ${(gap.scopes ?? []).join(', ')}`)
+  if (lines.length === 0) return ''
+  return `\nThe grant is missing scopes for these tools (add them to the app and re-authorize):\n${lines.join('\n')}`
 }
 
 export function registerFeishuAuthTools(ctx: Context, auth: FeishuAuthService): void {
@@ -83,12 +96,30 @@ export function registerFeishuAuthTools(ctx: Context, auth: FeishuAuthService): 
             expiresAt: { type: 'number' },
             refreshExpiresAt: { type: 'number' },
             scope: { type: 'string' },
+            scopes: { type: 'array', items: { type: 'string' } },
+            missingScopes: {
+              type: 'array',
+              items: {
+                type: 'object',
+                additionalProperties: false,
+                properties: {
+                  tool: { type: 'string' },
+                  scopes: { type: 'array', items: { type: 'string' } },
+                },
+              },
+            },
           },
         },
         render: (_args, value): ContentBlock[] => [text(describeStatus(value))],
       },
       async execute() {
-        return auth.status()
+        const status = await auth.status()
+        const scopes = grantedScopes(status.scope)
+        return {
+          ...status,
+          scopes,
+          missingScopes: status.connected ? missingScopes(scopes) : [],
+        }
       },
     }),
   )

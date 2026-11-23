@@ -91,3 +91,22 @@ test('auth disconnect is also gated', async () => {
   assert.equal(result.kind, 'deny')
   assert.equal(requests.length, 1)
 })
+
+test('a dry run skips the approval ask', async () => {
+  const { handler, requests } = makeCtx()
+  let nextCalled = false
+  const result = await handler(exec('feishu_im_send', { arguments: { dryRun: true } }), async () => {
+    nextCalled = true
+    return { kind: 'allow' }
+  })
+  assert.equal(nextCalled, true)
+  assert.deepEqual(result, { kind: 'allow' })
+  assert.equal(requests.length, 0)
+})
+
+test('task writes ask for approval too', async () => {
+  const { handler, requests } = makeCtx('denied')
+  const result = await handler(exec('feishu_task_create'), async () => ({ kind: 'allow' }))
+  assert.equal(requests.length, 1)
+  assert.deepEqual(result, { kind: 'deny', reason: 'Feishu write denied (denied)' })
+})

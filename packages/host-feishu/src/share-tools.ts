@@ -32,6 +32,10 @@ export function registerFeishuShareTool(ctx: Context, client: FeishuHttpClient):
         folderToken: { type: 'string', description: 'Target Feishu Drive folder token.' },
         chatId: { type: 'string', description: 'Optional group chat_id to send a card to.' },
         title: { type: 'string', description: 'Card title; defaults to the file name.' },
+        dryRun: {
+          type: 'boolean',
+          description: 'Describe the share instead of doing it. Nothing is uploaded, imported or sent.',
+        },
       },
       output: {
         schema: {
@@ -42,15 +46,39 @@ export function registerFeishuShareTool(ctx: Context, client: FeishuHttpClient):
             token: { type: 'string' },
             url: { type: 'string' },
             messageId: { type: 'string' },
+            dryRun: { type: 'boolean' },
+            preview: { type: 'string' },
           },
         },
-        render: (_args, value): ContentBlock[] => [
-          text(
-            `Shared as ${value.mode}: ${value.token}${value.url ? `\n${value.url}` : ''}${value.messageId ? `\nCard ${value.messageId}` : ''}`,
-          ),
-        ],
+        render: (_args, value): ContentBlock[] =>
+          value.preview
+            ? [text(value.preview)]
+            : [
+                text(
+                  `Shared as ${value.mode}: ${value.token}${value.url ? `\n${value.url}` : ''}${value.messageId ? `\nCard ${value.messageId}` : ''}`,
+                ),
+              ],
       },
       async execute(args) {
+        if (args.dryRun) {
+          const request = {
+            artifactId: args.artifactId ?? '',
+            filePath: args.filePath ?? '',
+            fileName: args.fileName ?? '',
+            mode: args.mode ?? 'auto',
+            folderToken: args.folderToken ?? '',
+            chatId: args.chatId ?? '',
+            title: args.title ?? '',
+          }
+          return {
+            mode: request.mode,
+            token: '',
+            url: '',
+            messageId: '',
+            dryRun: true,
+            preview: `Dry run for feishu_share_artifact — nothing was sent:\n${JSON.stringify(request, null, 2)}`,
+          }
+        }
         return shareArtifact(ctx, client, args)
       },
     }),

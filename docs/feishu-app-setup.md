@@ -35,8 +35,12 @@ tenant administrator's review.
 | `sheets:spreadsheet` | `feishu_sheet_read`, `feishu_sheet_write`, `feishu_sheet_append` | read and write spreadsheets |
 | `drive:drive` | `feishu_drive_upload`, `feishu_share_artifact` | upload artifacts and import docs |
 | `wiki:wiki` | `feishu_wiki_get` | resolve a wiki node to its document or sheet |
-| `im:message` | `feishu_im_send` | send messages as the user |
+| `im:message` | `feishu_im_send`, `feishu_im_history` | send messages and read chat history |
 | `contact:user.base:readonly` | `feishu_whoami` | current user identity |
+| `task:task:write` | `feishu_task_create`, `feishu_task_complete` | create tasks and mark them complete |
+| `task:task:read` | `feishu_task_list_mine` | list tasks assigned to the user |
+| `calendar:calendar:read` | `feishu_calendar_agenda` | read the user's calendar events |
+| `minutes:minutes:readonly` | `feishu_minutes_get` | read 妙记 metadata |
 | `offline_access` | all tools | refresh token so the connection survives restarts |
 
 Notes:
@@ -46,7 +50,15 @@ Notes:
 - Scope review usually takes one to four weeks in an enterprise tenant; start it
   before you need the tools.
 - `feishu_auth_status` reports an expired grant as disconnected, so you always see
-  whether a refresh is needed before a tool call fails.
+  whether a refresh is needed before a tool call fails. It also compares the granted
+  scopes against the tool table above and lists every tool that is missing one, so a
+  partial approval shows up before the first failing call.
+- `feishu_api` has no scope entry of its own because it can address any endpoint:
+  the grant *and* the app still need the scope that the endpoint requires.
+- The task, calendar and minutes scopes (`task:task:write`, `task:task:read`,
+  `calendar:calendar:read`, `minutes:minutes:readonly`) are opt-in: add them to
+  `FEISHU_SCOPES` (or the plugin's `scopes` config) when you want those tools.
+  `feishu_auth_status` names any tool whose scope the grant is missing.
 
 ## 3. Publish and scope availability
 

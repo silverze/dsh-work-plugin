@@ -496,6 +496,124 @@ export class FeishuHttpClient {
     }
     return { messages: input.order === 'oldest' ? collected : collected.reverse(), hasMore }
   }
+
+  /** One page of the connected user's tasks (`type=my_tasks`). */
+  async listTasks(input: {
+    completed?: boolean
+    pageSize?: number
+    pageToken?: string
+  }): Promise<{ tasks: FeishuTask[]; hasMore: boolean; pageToken?: string }> {
+    const data = await this.request<{
+      items?: Array<Record<string, unknown>>
+      has_more?: boolean
+      page_token?: string
+    }>('GET', '/task/v2/tasks', undefined, {
+      page_size: String(clamp(input.pageSize ?? 50, 1, 100)),
+      type: 'my_tasks',
+      user_id_type: 'open_id',
+      ...(input.completed === undefined ? {} : { completed: String(input.completed) }),
+      ...(input.pageToken ? { page_token: input.pageToken } : {}),
+    })
+    return {
+      tasks: (data.items ?? []).map((item) => readTask(item)),
+      hasMore: data.has_more === true,
+      ...(data.page_token ? { pageToken: data.page_token } : {}),
+    }
+  }
+
+  /** Create a task; `dueMs` is milliseconds since epoch. `allDay` marks a date-only due. */
+  async createTask(input: {
+    summary: string
+    description?: string
+    dueMs?: number
+    allDay?: boolean
+    assigneeOpenId?: string
+  }): Promise<{ taskGuid: string; summary: string }> {
+    const data = await this.request<{ task?: Record<string, unknown> }>(
+      'POST',
+      '/task/v2/tasks',
+      {
+        summary: input.summary,
+        ...(input.description ? { description: input.description } : {}),
+        ...(input.dueMs === undefined
+          ? {}
+          : {
+              due: {
+                timestamp: String(input.dueMs),
+                ...(input.allDay ? { is_all_day: true } : {}),
+              },
+            }),
+        ...(input.assigneeOpenId
+          ? { members: [{ id: input.assigneeOpenId, type: 'user', role: 'assignee' }] }
+          : {}),
+      },
+      { user_id_type: 'open_id' },
+    )
+    const task = data.task ?? {}
+    return { taskGuid: String(task.guid ?? ''), summary: String(task.summary ?? input.summary) }
+  }
+
+  /** Mark a task complete; Feishu stores the completion instant, not a flag. */
+  async completeTask(input: { taskGuid: string }): Promise<{ taskGuid: string; completedAt: number }> {
+    const completedAt = Date.now()
+    await this.request(
+      'PATCH',
+      `/task/v2/tasks/${encodeURIComponent(input.taskGuid)}`,
+      { task: { completed_at: String(completedAt) }, update_fields: ['completed_at'] },
+      { user_id_type: 'open_id' },
+    )
+    return { taskGuid: input.taskGuid, completedAt }
+  }
+
+  /** Minute (妙记) metadata; transcripts go through the raw `getJson` route. */
+  async getMinutes(input: { minuteToken: string }): Promise<FeishuMinutesNote> {
+    const data = await this.request<Record<string, unknown>>(
+      'GET',
+      `/minutes/v1/minutes/${encodeURIComponent(input.minuteToken)}`,
+    )
+    const record = (data.minute as Record<string, unknown> | undefined) ?? data
+    return {
+      token: String(record.token ?? input.minuteToken),
+      title: String(record.title ?? ''),
+      ...(record.owner_id ? { ownerId: String(record.owner_id) } : {}),
+      ...(record.url ? { url: String(record.url) } : {}),
+      ...(record.duration ? { durationSeconds: Number(record.duration) } : {}),
+    }
+  }
+
+  /**
+   * Calendar events in `instance_view` for one window. Instance view expands
+   * recurring events, and Feishu caps the window at 40 days; callers should
+   * clamp before asking.
+   */
+  async calendarAgenda(input: {
+    calendarId?: string
+    startMs: number
+    endMs: number
+  }): Promise<{ events: FeishuCalendarEvent[]; hasMore: boolean }> {
+    const calendarId = input.calendarId ?? '<primary>'
+    const data = await this.request<{ items?: Array<Record<string, unknown>>; has_more?: boolean }>(
+      'GET',
+      `/calendar/v4/calendars/${encodeURIComponent(calendarId)}/events/instance_view`,
+      undefined,
+      {
+        start_time: String(Math.floor(input.startMs / 1000)),
+        end_time: String(Math.floor(input.endMs / 1000)),
+      },
+    )
+    return {
+      events: (data.items ?? []).map((item) => readEvent(item)),
+      hasMore: data.has_more === true,
+    }
+  }
+
+  /**
+   * Raw GET for an endpoint without a typed wrapper (bitable, okr, …). Returns
+   * the envelope's `data`; the caller owns the shape.
+   */
+  async getJson(path: string, query: Record<string, string> = {}): Promise<unknown> {
+    return this.request<unknown>('GET', path, undefined, query)
+  }
 }
 
 function clamp(value: number, minimum: number, maximum: number): number {
@@ -519,6 +637,64 @@ export interface FeishuChatMessage {
   senderId: string
   senderType?: string
   text: string
+}
+
+export interface FeishuTask {
+  guid: string
+  summary: string
+  completed: boolean
+  description?: string
+  dueMs?: number
+}
+
+export interface FeishuCalendarEvent {
+  eventId: string
+  summary: string
+  /** Milliseconds since epoch. */
+  startMs: number
+  endMs: number
+  location?: string
+}
+
+export interface FeishuMinutesNote {
+  token: string
+  title: string
+  ownerId?: string
+  url?: string
+  durationSeconds?: number
+}
+
+/** Task v2 fields we surface; `completed_at` is "0" while the task is open. */
+function readTask(item: Record<string, unknown>): FeishuTask {
+  const due = item.due as { timestamp?: unknown } | undefined
+  const dueMs = ms(due?.timestamp)
+  return {
+    guid: String(item.guid ?? ''),
+    summary: String(item.summary ?? ''),
+    completed: ms(item.completed_at) !== undefined,
+    ...(item.description ? { description: String(item.description) } : {}),
+    ...(dueMs === undefined ? {} : { dueMs }),
+  }
+}
+
+function readEvent(item: Record<string, unknown>): FeishuCalendarEvent {
+  const start = item.start_time as { timestamp?: unknown } | undefined
+  const end = item.end_time as { timestamp?: unknown } | undefined
+  const location = item.location as { name?: unknown } | undefined
+  return {
+    eventId: String(item.event_id ?? ''),
+    summary: String(item.summary ?? ''),
+    startMs: ms(start?.timestamp) ?? 0,
+    endMs: ms(end?.timestamp) ?? 0,
+    ...(location?.name ? { location: String(location.name) } : {}),
+  }
+}
+
+/** Feishu sends both numbers and numeric strings; "0" means unset. */
+function ms(value: unknown): number | undefined {
+  if (value === undefined || value === null || value === '') return undefined
+  const parsed = Number(value)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined
 }
 
 /**

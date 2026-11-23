@@ -9,6 +9,7 @@ import type { ContentBlock } from '@deepseek-ai/dsh-llm'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 
 import type { FeishuHttpClient } from './feishu-client.js'
+import { FeishuError } from './errors.js'
 import {
   formatStamp,
   formatTranscript,
@@ -69,9 +70,35 @@ function parseTime(value: string | undefined): number | undefined {
 const MAX_DOC_CHARS = 100_000
 const DEFAULT_DOC_CHARS = 20_000
 
+/** Services `feishu_api` may reach. Everything else has a typed tool. */
+const API_SERVICES = new Set([
+  'docx',
+  'sheets',
+  'drive',
+  'wiki',
+  'bitable',
+  'im',
+  'contact',
+  'task',
+  'calendar',
+  'minutes',
+  'okr',
+  'approval',
+  'attendance',
+])
+
 
 function text(value: string): ContentBlock {
   return { type: 'text', text: value }
+}
+
+/**
+ * `dryRun` output for a write tool: the request it would have sent. Rendering
+ * the JSON is the whole point — it can be reviewed before anything leaves the
+ * machine.
+ */
+function preview(tool: string, request: Record<string, unknown>): string {
+  return `Dry run for ${tool} — nothing was sent:\n${JSON.stringify(request, null, 2)}`
 }
 
 export function registerFeishuTools(ctx: Context, client: FeishuHttpClient): void {
@@ -182,10 +209,14 @@ export function registerFeishuTools(ctx: Context, client: FeishuHttpClient): voi
     defineTool({
       name: 'feishu_doc_create',
       description:
-        'Create an empty Feishu docx document in a folder (or the user root). Externally visible: confirm with the user first.',
+        'Create an empty Feishu docx document in a folder (or the user root). Externally visible: confirm with the user first. Pass `dryRun: true` to preview the request without sending it.',
       parameters: {
         title: { type: 'string', required: true, description: 'Document title.' },
         folderToken: { type: 'string', description: 'Target folder token; omit for the user root.' },
+        dryRun: {
+          type: 'boolean',
+          description: 'Describe the request instead of sending it. Nothing is created.',
+        },
       },
       output: {
         schema: {
@@ -194,13 +225,27 @@ export function registerFeishuTools(ctx: Context, client: FeishuHttpClient): voi
           properties: {
             documentId: { type: 'string' },
             url: { type: 'string' },
+            dryRun: { type: 'boolean' },
+            preview: { type: 'string' },
           },
         },
-        render: (_args, value): ContentBlock[] => [
-          text(`Created Feishu document ${value.documentId}\n${value.url}`),
-        ],
+        render: (_args, value): ContentBlock[] =>
+          value.preview
+            ? [text(value.preview)]
+            : [text(`Created Feishu document ${value.documentId}\n${value.url}`)],
       },
       async execute(args) {
+        if (args.dryRun) {
+          return {
+            documentId: '',
+            url: '',
+            dryRun: true,
+            preview: preview('feishu_doc_create', {
+              title: args.title,
+              ...(args.folderToken ? { folderToken: args.folderToken } : {}),
+            }),
+          }
+        }
         const doc = await client.createDocument({
           title: args.title,
           ...(args.folderToken ? { folderToken: args.folderToken } : {}),
@@ -214,11 +259,15 @@ export function registerFeishuTools(ctx: Context, client: FeishuHttpClient): voi
     defineTool({
       name: 'feishu_doc_append',
       description:
-        'Append Markdown to a Feishu docx document. Supports headings, paragraphs, bullets, ordered lists, code fences and quotes. Externally visible: confirm with the user first.',
+        'Append Markdown to a Feishu docx document. Supports headings, paragraphs, bullets, ordered lists, code fences and quotes. Externally visible: confirm with the user first. Pass `dryRun: true` to preview the request without sending it.',
       parameters: {
         documentId: { type: 'string', required: true, description: 'Feishu docx document id.' },
         markdown: { type: 'string', required: true, description: 'Markdown content to append.' },
         blockId: { type: 'string', description: 'Parent block id; defaults to the document root.' },
+        dryRun: {
+          type: 'boolean',
+          description: 'Describe the request instead of sending it. Nothing is appended.',
+        },
       },
       output: {
         schema: {
@@ -228,13 +277,30 @@ export function registerFeishuTools(ctx: Context, client: FeishuHttpClient): voi
             documentId: { type: 'string' },
             appended: { type: 'number' },
             failed: { type: 'number' },
+            dryRun: { type: 'boolean' },
+            preview: { type: 'string' },
           },
         },
-        render: (_args, value): ContentBlock[] => [
-          text(`Appended ${value.appended} block(s) to ${value.documentId}`),
-        ],
+        render: (_args, value): ContentBlock[] =>
+          value.preview
+            ? [text(value.preview)]
+            : [text(`Appended ${value.appended} block(s) to ${value.documentId}`)],
       },
       async execute(args) {
+        if (args.dryRun) {
+          return {
+            documentId: args.documentId,
+            appended: 0,
+            failed: 0,
+            dryRun: true,
+            preview: preview('feishu_doc_append', {
+              documentId: args.documentId,
+              ...(args.blockId ? { blockId: args.blockId } : {}),
+              lines: args.markdown.split('\n').length,
+              markdown: args.markdown,
+            }),
+          }
+        }
         return client.appendDocument({
           documentId: args.documentId,
           markdown: args.markdown,
@@ -305,7 +371,7 @@ export function registerFeishuTools(ctx: Context, client: FeishuHttpClient): voi
     defineTool({
       name: 'feishu_sheet_write',
       description:
-        'Overwrite a Feishu spreadsheet range. Externally visible: confirm the range and values first.',
+        'Overwrite a Feishu spreadsheet range. Externally visible: confirm the range and values first. Pass `dryRun: true` to preview the request without sending it.',
       parameters: {
         spreadsheetToken: { type: 'string', required: true, description: 'Spreadsheet token.' },
         range: { type: 'string', required: true, description: 'A1 range to overwrite.' },
@@ -315,16 +381,38 @@ export function registerFeishuTools(ctx: Context, client: FeishuHttpClient): voi
           items: { type: 'array', items: { type: 'json' } },
           description: 'Rows of cell values.',
         },
+        dryRun: {
+          type: 'boolean',
+          description: 'Describe the request instead of sending it. Nothing is written.',
+        },
       },
       output: {
         schema: {
           type: 'object',
           additionalProperties: false,
-          properties: { updatedCells: { type: 'number' } },
+          properties: {
+            updatedCells: { type: 'number' },
+            dryRun: { type: 'boolean' },
+            preview: { type: 'string' },
+          },
         },
-        render: (_args, value): ContentBlock[] => [text(`Updated ${value.updatedCells} cell(s).`)],
+        render: (_args, value): ContentBlock[] =>
+          value.preview
+            ? [text(value.preview)]
+            : [text(`Updated ${value.updatedCells} cell(s).`)],
       },
       async execute(args) {
+        if (args.dryRun) {
+          return {
+            updatedCells: 0,
+            dryRun: true,
+            preview: preview('feishu_sheet_write', {
+              spreadsheetToken: args.spreadsheetToken,
+              range: args.range,
+              values: args.values,
+            }),
+          }
+        }
         return client.writeSheet({
           spreadsheetToken: args.spreadsheetToken,
           range: args.range,
@@ -338,7 +426,7 @@ export function registerFeishuTools(ctx: Context, client: FeishuHttpClient): voi
     defineTool({
       name: 'feishu_sheet_append',
       description:
-        'Append rows to a Feishu spreadsheet range. Externally visible: confirm the range and values first.',
+        'Append rows to a Feishu spreadsheet range. Externally visible: confirm the range and values first. Pass `dryRun: true` to preview the request without sending it.',
       parameters: {
         spreadsheetToken: { type: 'string', required: true, description: 'Spreadsheet token.' },
         range: { type: 'string', required: true, description: 'A1 range used for the append operation.' },
@@ -348,16 +436,38 @@ export function registerFeishuTools(ctx: Context, client: FeishuHttpClient): voi
           items: { type: 'array', items: { type: 'json' } },
           description: 'Rows to append.',
         },
+        dryRun: {
+          type: 'boolean',
+          description: 'Describe the request instead of sending it. Nothing is appended.',
+        },
       },
       output: {
         schema: {
           type: 'object',
           additionalProperties: false,
-          properties: { updatedCells: { type: 'number' } },
+          properties: {
+            updatedCells: { type: 'number' },
+            dryRun: { type: 'boolean' },
+            preview: { type: 'string' },
+          },
         },
-        render: (_args, value): ContentBlock[] => [text(`Appended ${value.updatedCells} cell(s).`)],
+        render: (_args, value): ContentBlock[] =>
+          value.preview
+            ? [text(value.preview)]
+            : [text(`Appended ${value.updatedCells} cell(s).`)],
       },
       async execute(args) {
+        if (args.dryRun) {
+          return {
+            updatedCells: 0,
+            dryRun: true,
+            preview: preview('feishu_sheet_append', {
+              spreadsheetToken: args.spreadsheetToken,
+              range: args.range,
+              values: args.values,
+            }),
+          }
+        }
         return client.appendSheet({
           spreadsheetToken: args.spreadsheetToken,
           range: args.range,
@@ -371,11 +481,15 @@ export function registerFeishuTools(ctx: Context, client: FeishuHttpClient): voi
     defineTool({
       name: 'feishu_drive_upload',
       description:
-        'Upload a local file to Feishu Drive. Externally visible: confirm the file and folder first.',
+        'Upload a local file to Feishu Drive. Externally visible: confirm the file and folder first. Pass `dryRun: true` to preview the request without sending it.',
       parameters: {
         filePath: { type: 'string', required: true, description: 'Absolute local file path.' },
         fileName: { type: 'string', required: true, description: 'Name shown in Feishu Drive.' },
         folderToken: { type: 'string', description: 'Target folder token; omit for the user root.' },
+        dryRun: {
+          type: 'boolean',
+          description: 'Describe the request instead of sending it. Nothing is uploaded.',
+        },
       },
       output: {
         schema: {
@@ -384,13 +498,28 @@ export function registerFeishuTools(ctx: Context, client: FeishuHttpClient): voi
           properties: {
             fileToken: { type: 'string' },
             url: { type: 'string' },
+            dryRun: { type: 'boolean' },
+            preview: { type: 'string' },
           },
         },
-        render: (_args, value): ContentBlock[] => [
-          text(`Uploaded file ${value.fileToken}${value.url ? `\n${value.url}` : ''}`),
-        ],
+        render: (_args, value): ContentBlock[] =>
+          value.preview
+            ? [text(value.preview)]
+            : [text(`Uploaded file ${value.fileToken}${value.url ? `\n${value.url}` : ''}`)],
       },
       async execute(args) {
+        if (args.dryRun) {
+          return {
+            fileToken: '',
+            url: '',
+            dryRun: true,
+            preview: preview('feishu_drive_upload', {
+              filePath: args.filePath,
+              fileName: args.fileName,
+              ...(args.folderToken ? { folderToken: args.folderToken } : {}),
+            }),
+          }
+        }
         return client.uploadFile({
           filePath: args.filePath,
           fileName: args.fileName,
@@ -404,7 +533,7 @@ export function registerFeishuTools(ctx: Context, client: FeishuHttpClient): voi
     defineTool({
       name: 'feishu_im_send',
       description:
-        'Send a Feishu text or interactive card message to a user or group. Externally visible: confirm the recipient and content first.',
+        'Send a Feishu text or interactive card message to a user or group. Externally visible: confirm the recipient and content first. Pass `dryRun: true` to preview the message without sending it.',
       parameters: {
         receiveId: { type: 'string', required: true, description: 'open_id or chat_id.' },
         receiveIdType: {
@@ -424,20 +553,43 @@ export function registerFeishuTools(ctx: Context, client: FeishuHttpClient): voi
           required: true,
           description: 'Text for `text`, or a JSON card string for `interactive`.',
         },
+        dryRun: {
+          type: 'boolean',
+          description: 'Describe the message instead of sending it. Nothing is delivered.',
+        },
       },
       output: {
         schema: {
           type: 'object',
           additionalProperties: false,
-          properties: { messageId: { type: 'string' } },
+          properties: {
+            messageId: { type: 'string' },
+            dryRun: { type: 'boolean' },
+            preview: { type: 'string' },
+          },
         },
-        render: (_args, value): ContentBlock[] => [text(`Sent message ${value.messageId}`)],
+        render: (_args, value): ContentBlock[] =>
+          value.preview
+            ? [text(value.preview)]
+            : [text(`Sent message ${value.messageId}`)],
       },
       async execute(args) {
         const payload =
           args.msgType === 'text' && !args.content.trim().startsWith('{')
             ? JSON.stringify({ text: args.content })
             : args.content
+        if (args.dryRun) {
+          return {
+            messageId: '',
+            dryRun: true,
+            preview: preview('feishu_im_send', {
+              receiveId: args.receiveId,
+              receiveIdType: args.receiveIdType,
+              msgType: args.msgType,
+              content: payload,
+            }),
+          }
+        }
         return client.sendMessage({
           receiveId: args.receiveId,
           receiveIdType: args.receiveIdType,
@@ -538,6 +690,332 @@ export function registerFeishuTools(ctx: Context, client: FeishuHttpClient): voi
           nextEndTime: history.nextEndTime ? String(history.nextEndTime) : '',
           nextStartTime: history.nextStartTime ? String(history.nextStartTime) : '',
           transcript: formatTranscript(history.messages),
+        }
+      },
+    }),
+  )
+
+  ctx.tools.register(
+    defineTool({
+      name: 'feishu_api',
+      description:
+        'GET one read-only Feishu OpenAPI path as the connected user, for endpoints without a dedicated tool (bitable, okr, attendance, …). Only GET under /open-apis/ and a fixed service allowlist — writes must use a dedicated tool. Prefer a typed tool when one exists.',
+      parameters: {
+        path: {
+          type: 'string',
+          required: true,
+          description: 'Path including the version, e.g. `/open-apis/bitable/v1/apps/<app_token>/tables`.',
+        },
+        query: {
+          type: 'string',
+          description: 'URL query string without `?`, e.g. `page_size=20&filter=…`.',
+        },
+        maxChars: {
+          type: 'number',
+          description: 'Truncate the JSON response (default 20000, cap 100000).',
+        },
+      },
+      output: {
+        schema: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            path: { type: 'string' },
+            json: { type: 'string' },
+            truncated: { type: 'boolean' },
+          },
+        },
+        render: (_args, value): ContentBlock[] => [
+          text(
+            `${value.path}${value.truncated ? ' (truncated)' : ''}\n\n${value.json}`,
+          ),
+        ],
+      },
+      async execute(args) {
+        const path = args.path.trim()
+        if (!path.startsWith('/open-apis/')) {
+          throw new FeishuError(
+            'feishu_invalid_argument',
+            'path must start with /open-apis/ and name a versioned resource.',
+          )
+        }
+        const service = path.slice('/open-apis/'.length).split('/')[0] ?? ''
+        if (!API_SERVICES.has(service)) {
+          throw new FeishuError(
+            'feishu_invalid_argument',
+            `service "${service}" is not on the read-only list (${[...API_SERVICES].join(', ')}).`,
+          )
+        }
+        const query: Record<string, string> = {}
+        for (const [key, value] of new URLSearchParams((args.query ?? '').replace(/^\?/, ''))) {
+          query[key] = value
+        }
+        const data = await client.getJson(path.slice('/open-apis'.length), query)
+        const json = JSON.stringify(data, null, 2) ?? ''
+        const limit = Math.min(args.maxChars ?? DEFAULT_DOC_CHARS, MAX_DOC_CHARS)
+        return {
+          path,
+          json: json.length > limit ? json.slice(0, limit) : json,
+          truncated: json.length > limit,
+        }
+      },
+    }),
+  )
+
+  ctx.tools.register(
+    defineTool({
+      name: 'feishu_task_create',
+      description:
+        "Create a Feishu task (待办) for the connected user, or for assigneeOpenId when given. Externally visible: confirm the title and assignee first.",
+      parameters: {
+        summary: { type: 'string', required: true, description: 'Task title.' },
+        description: { type: 'string', description: 'Longer description, plain text.' },
+        due: {
+          type: 'string',
+          description:
+            'Due date: ISO 8601, YYYY-MM-DD (an all-day due), or epoch milliseconds.',
+        },
+        assigneeOpenId: {
+          type: 'string',
+          description: 'Assign to this open_id instead of the connected user.',
+        },
+      },
+      output: {
+        schema: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            taskGuid: { type: 'string' },
+            summary: { type: 'string' },
+          },
+        },
+        render: (_args, value): ContentBlock[] => [
+          text(`Created Feishu task "${value.summary}" (${value.taskGuid})`),
+        ],
+      },
+      async execute(args) {
+        const dueMs = parseTime(args.due)
+        if (args.due && dueMs === undefined) {
+          throw new FeishuError(
+            'feishu_invalid_argument',
+            `could not read due "${args.due}" as ISO 8601 or epoch milliseconds.`,
+          )
+        }
+        // A date-only due makes the task due that whole day, not at 00:00 UTC.
+        const allDay = args.due !== undefined && /^\d{4}-\d{2}-\d{2}$/.test(args.due.trim())
+        return client.createTask({
+          summary: args.summary,
+          ...(args.description ? { description: args.description } : {}),
+          ...(dueMs === undefined ? {} : { dueMs }),
+          ...(allDay ? { allDay: true } : {}),
+          ...(args.assigneeOpenId ? { assigneeOpenId: args.assigneeOpenId } : {}),
+        })
+      },
+    }),
+  )
+
+  ctx.tools.register(
+    defineTool({
+      name: 'feishu_task_complete',
+      description:
+        'Mark one Feishu task complete. Externally visible: confirm the task first.',
+      parameters: {
+        taskGuid: { type: 'string', required: true, description: 'Task guid.' },
+      },
+      output: {
+        schema: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            taskGuid: { type: 'string' },
+            completedAt: { type: 'number' },
+          },
+        },
+        render: (_args, value): ContentBlock[] => [
+          text(`Completed Feishu task ${value.taskGuid}`),
+        ],
+      },
+      async execute(args) {
+        return client.completeTask({ taskGuid: args.taskGuid })
+      },
+    }),
+  )
+
+  ctx.tools.register(
+    defineTool({
+      name: 'feishu_task_list_mine',
+      description:
+        'List tasks assigned to the connected user, one page per call. Read-only.',
+      parameters: {
+        completed: {
+          type: 'boolean',
+          description: 'true for completed tasks, false for open ones; omit for both.',
+        },
+        pageSize: { type: 'number', description: 'Tasks per page (default 50, cap 100).' },
+        pageToken: { type: 'string', description: 'Continue from a previous page.' },
+      },
+      output: {
+        schema: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            tasks: {
+              type: 'array',
+              items: {
+                type: 'object',
+                additionalProperties: false,
+                properties: {
+                  guid: { type: 'string' },
+                  summary: { type: 'string' },
+                  completed: { type: 'boolean' },
+                  due: { type: 'string' },
+                },
+              },
+            },
+            hasMore: { type: 'boolean' },
+            pageToken: { type: 'string' },
+          },
+        },
+        render: (_args, value): ContentBlock[] => {
+          const tasks = value.tasks ?? []
+          if (tasks.length === 0) return [text('No tasks match.')]
+          const lines = tasks.map(
+            (task) =>
+              `- ${task.completed ? '[x]' : '[ ]'} ${task.summary}${task.due ? ` (due ${task.due})` : ''} — ${task.guid}`,
+          )
+          if (value.hasMore && value.pageToken) {
+            lines.push(`More: pass pageToken=${value.pageToken}.`)
+          }
+          return [text(lines.join('\n'))]
+        },
+      },
+      async execute(args) {
+        const page = await client.listTasks({
+          ...(args.completed === undefined ? {} : { completed: args.completed }),
+          ...(args.pageSize ? { pageSize: args.pageSize } : {}),
+          ...(args.pageToken ? { pageToken: args.pageToken } : {}),
+        })
+        return {
+          tasks: page.tasks.map((task) => ({
+            guid: task.guid,
+            summary: task.summary,
+            completed: task.completed,
+            ...(task.dueMs === undefined ? {} : { due: new Date(task.dueMs).toISOString() }),
+          })),
+          hasMore: page.hasMore,
+          pageToken: page.pageToken ?? '',
+        }
+      },
+    }),
+  )
+
+  ctx.tools.register(
+    defineTool({
+      name: 'feishu_minutes_get',
+      description:
+        'Read one Feishu 妙记 (minutes) metadata: title, owner, duration, link. Transcripts and summaries are not exposed here; use feishu_api for those paths. Read-only.',
+      parameters: {
+        minuteToken: { type: 'string', required: true, description: 'Minute token from a 妙记 link.' },
+      },
+      output: {
+        schema: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            token: { type: 'string' },
+            title: { type: 'string' },
+            ownerId: { type: 'string' },
+            url: { type: 'string' },
+            durationSeconds: { type: 'number' },
+          },
+        },
+        render: (_args, value): ContentBlock[] => [
+          text(
+            [
+              `Minutes: ${value.title || value.token}`,
+              value.durationSeconds === undefined ? '' : `Duration: ${Math.round(value.durationSeconds / 60)} min`,
+              value.url ? `Link: ${value.url}` : '',
+            ]
+              .filter(Boolean)
+              .join('\n'),
+          ),
+        ],
+      },
+      async execute(args) {
+        return client.getMinutes({ minuteToken: args.minuteToken })
+      },
+    }),
+  )
+
+  ctx.tools.register(
+    defineTool({
+      name: 'feishu_calendar_agenda',
+      description:
+        "Read the connected user's calendar events in a window (default: now to seven days out), expanded from recurring series. Read-only; the window must be at most 40 days because that is Feishu's cap.",
+      parameters: {
+        startTime: { type: 'string', description: 'Window start: ISO 8601 or epoch milliseconds. Default now.' },
+        endTime: { type: 'string', description: 'Window end: ISO 8601 or epoch milliseconds. Default start + 7 days.' },
+        calendarId: { type: 'string', description: "Calendar id; omit for the user's primary calendar." },
+      },
+      output: {
+        schema: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            start: { type: 'string' },
+            end: { type: 'string' },
+            events: {
+              type: 'array',
+              items: {
+                type: 'object',
+                additionalProperties: false,
+                properties: {
+                  eventId: { type: 'string' },
+                  summary: { type: 'string' },
+                  start: { type: 'string' },
+                  end: { type: 'string' },
+                  location: { type: 'string' },
+                },
+              },
+            },
+            hasMore: { type: 'boolean' },
+          },
+        },
+        render: (_args, value): ContentBlock[] => {
+          const events = value.events ?? []
+          if (events.length === 0) return [text(`No events between ${value.start} and ${value.end}.`)]
+          const lines = events.map(
+            (event) =>
+              `- ${event.start} → ${event.end}  ${event.summary}${event.location ? ` @ ${event.location}` : ''}`,
+          )
+          return [text(lines.join('\n'))]
+        },
+      },
+      async execute(args) {
+        const startMs = parseTime(args.startTime) ?? Date.now()
+        const endMs = parseTime(args.endTime) ?? startMs + 7 * 86_400_000
+        if (endMs <= startMs) {
+          throw new FeishuError('feishu_invalid_argument', 'endTime must be after startTime.')
+        }
+        if (endMs - startMs > 40 * 86_400_000) {
+          throw new FeishuError('feishu_invalid_argument', 'the window must be at most 40 days.')
+        }
+        const agenda = await client.calendarAgenda({
+          ...(args.calendarId ? { calendarId: args.calendarId } : {}),
+          startMs,
+          endMs,
+        })
+        return {
+          start: new Date(startMs).toISOString(),
+          end: new Date(endMs).toISOString(),
+          events: agenda.events.map((event) => ({
+            eventId: event.eventId,
+            summary: event.summary,
+            start: new Date(event.startMs).toISOString(),
+            end: new Date(event.endMs).toISOString(),
+            ...(event.location ? { location: event.location } : {}),
+          })),
+          hasMore: agenda.hasMore,
         }
       },
     }),
