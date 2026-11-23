@@ -53,7 +53,14 @@ for (const dir of ORDER) {
   }
   console.log(`publish ${label}`)
   try {
-    sh('pnpm', ['--filter', manifest.name, 'publish', '--access', 'public', '--no-git-checks', '--provenance'])
+    // Publish to npmjs whatever the machine's default registry is: a mirror such
+    // as npmmirror accepts the first push and then the package is unreachable
+    // for everyone installing from the public registry.
+    const args = ['--filter', manifest.name, 'publish', '--access', 'public', '--no-git-checks', `--registry=${REGISTRY}`]
+    // Provenance is minted from the CI OIDC token; requesting it on a laptop fails
+    // with "Automatic provenance generation not supported for provider: null".
+    if (process.env.GITHUB_ACTIONS === 'true') args.push('--provenance')
+    sh('pnpm', args)
   } catch {
     failed += 1
     console.error(`failed ${label}`)
