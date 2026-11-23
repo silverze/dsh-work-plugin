@@ -89,16 +89,20 @@ be quietly turned into a staged release that needs a person to approve it. The
 ### Configure the five trust relationships in the web UI
 
 There is no organisation-wide switch: each package needs its own relationship.
+Do this on release day: a new connection has to complete its first publish within
+48 hours or it expires — see [Validation window](#validation-window).
 
 1. Sign in on npmjs.com as `silverze`.
 2. Open the package, e.g.
    <https://www.npmjs.com/package/@dsh-work-plugin/skills>, and click **Settings**
    in the package header (not the account settings page).
-3. Find **Trusted Publisher** → **Add trusted publisher** → **GitHub Actions**.
-4. Fill in exactly:
+3. Scroll to **Trusted Publisher**. The *Publisher* dropdown already reads
+   **GitHub Actions**; click **Set up connection**.
+4. Fill in the form:
 
    | Field | Value |
    | --- | --- |
+   | Label | `dsh-work-plugin release` (optional, free-text reminder) |
    | Organization or user | `silverze` |
    | Repository | `dsh-work-plugin` |
    | Workflow filename | `release.yml` |
@@ -109,11 +113,20 @@ There is no organisation-wide switch: each package needs its own relationship.
    environment has to match the job: `release.yml` sets none, so leaving it empty
    is required.
 
-5. Under **Allowed actions**, tick **npm publish**. Connections created after
-   2026-09-03 allow *staged* publishing only by default; our workflow publishes
-   directly, and without this tick the registry rejects it.
-6. **Add trusted publisher**, then repeat steps 2–5 for `feishu`, `host`,
+5. Under **Allowed actions**:
+   - Tick **Allow npm publish**. Connections created after 2026-09-03 allow
+     *staged* publishing only by default, and this workflow publishes directly —
+     without the tick the registry rejects the publish.
+   - Leave **Allow npm dist-tag** unticked: nothing in the release path runs
+     `npm dist-tag`, and pnpm only gained OIDC support for it in 12.12.1 while
+     this repository pins 11.28.5.
+6. Click **Set up connection**, then repeat steps 2–5 for `feishu`, `host`,
    `client` and `bundle`.
+
+Read the banner above the form once: **a connection cannot be edited after it is
+created**. Changing the repository, workflow, environment or permissions means
+deleting it and creating a new one (`npm trust revoke --id <id> <package>`, or the
+Delete button).
 
 ### Configure the five trust relationships from the CLI
 
@@ -142,6 +155,50 @@ Facts worth knowing before re-running anything:
 - `npm trust list <package>` is the quickest way to confirm what is configured
   and to copy the ID for a revoke.
 
+### Validation window
+
+A fresh connection shows **Pending validation** on the package page. It is
+already usable; the state only means that no publish has gone through it yet, and
+the first successful publish turns it into a validated connection (the page then
+lists its permissions, e.g. `npm publish` and `npm stage publish`).
+
+The clock is short: npm requires that first publish **within 2 days** of creating
+the connection. Miss it and the connection expires — it can no longer be used or
+edited, and the only way forward is to delete it and create a new one.
+
+What that means for a release:
+
+- Create the five connections on release day, not days before the next tag.
+- A publish the script skips (`skip <package>@<version>: already on <registry>`)
+  does **not** count. Nothing reaches the registry through that connection, so a
+  package whose version already exists stays pending. Bump the version so every
+  package really publishes.
+- An expired connection shows up as a 403 on that package in CI; recreate it and
+  re-run the job while the tag is still the latest one.
+
+### Verifying without publishing
+
+`npm trust list <package>` prints the connection ID and its claims, but it needs a
+credential allowed to change package settings. A granular token with **Bypass
+2FA** — the kind stored in `~/.npmrc` on this machine — is refused:
+
+```text
+403 403 Forbidden - GET https://registry.npmjs.org/-/package/@dsh-work-plugin%2fskills/trust
+```
+
+The same response comes back for every package, configured or not, so it says
+nothing about the configuration. To check before a release either open the
+package's Settings page in a signed-in browser, or log in interactively first
+(back up `~/.npmrc` and restore it afterwards — the local token is still what a
+laptop release uses) and then run:
+
+```bash
+npm login --auth-type=web
+for p in skills feishu host client bundle; do
+  npx --yes npm@11.21.3 trust list "@dsh-work-plugin/$p"
+done
+```
+
 ### What the workflow does
 
 `release.yml` already requests `id-token: write`, which is the one hard
@@ -169,7 +226,9 @@ requirement; everything else is pnpm's job:
    `📦 @dsh-work-plugin/skills@X.Y.Z → https://registry.npmjs.org/`, five times.
 3. Open the package page: each version shows **Built and signed on GitHub
    Actions** under the version list (the provenance badge).
-4. After the first green run, delete the old secret under
+4. Open the package's Settings page once and confirm the connection no longer
+   reads **Pending validation** — the first publish is what validates it.
+5. After the first green run, delete the old secret under
    *Repo → Settings → Secrets and variables → Actions → NPM_TOKEN*. The local
    token can stay for emergency laptop releases.
 
@@ -179,6 +238,7 @@ requirement; everything else is pnpm's job:
 | --- | --- |
 | `403` / "not authorized to publish this package" | Workflow filename, repository or environment does not match the trust relationship, or **npm publish** was not ticked under Allowed actions |
 | `EOTP` or the bypass-2FA message in CI | A `NODE_AUTH_TOKEN` is still set in the job or the repo secret is being injected |
+| CI publish fails with a 403 for one package, its Settings page says expired | The connection was created more than 2 days before its first publish — delete it, create a new one, re-run the job |
 | `npm trust` refuses with a 2FA error | Account 2FA is off, or the token in `~/.npmrc` is a bypass-2FA granular token — log in interactively |
 | Publish step skipped, run green | An older `release.yml` with the `if [ -z "$NODE_AUTH_TOKEN" ]` guard is still on the tag |
 | `EUSAGE Automatic provenance generation not supported for provider: null` | `--provenance` reached a laptop publish; only the CI path should pass it |
@@ -233,4 +293,6 @@ Every number in that description is checkable in the packages: 14 `work_*` tools
 - [ ] Clean `DSH_HOME` install + boot, work mode visible
 - [ ] No token, secret, real chat name or order number in the repository
 - [ ] `CHANGELOG.md` updated and tagged
-- [ ] Trusted publisher configured for all five packages, so the tag push needs no `NPM_TOKEN`
+- [ ] Trusted publisher configured for all five packages on release day, each with **Allow npm publish**
+- [ ] After the run, all five connections are validated (no longer **Pending validation**)
+- [ ] `NPM_TOKEN` secret removed once the tokenless run is green
