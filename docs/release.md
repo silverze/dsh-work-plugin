@@ -50,12 +50,9 @@ Always publish with **pnpm**, never with `npm publish`: pnpm rewrites the
 `^<version>` ranges, while `npm publish` ships them verbatim and every install
 fails with `EUNSUPPORTEDPROTOCOL Unsupported URL Type "workspace:"`.
 
-Or push a `v*` tag and let `.github/workflows/release.yml` publish all five with
-provenance (`id-token: write`, `NPM_TOKEN` secret). Without that secret the job
-stays green and skips publishing; the other option is to configure a trusted
-publisher for each `@dsh-work-plugin/*` package on npmjs.com
-(Package settings → Trusted publishing → GitHub Actions, workflow
-`release.yml`), after which no token is needed.
+Or push a `v*` tag and let `.github/workflows/release.yml` publish all five
+without a stored token, using trusted publishing — configure it once, see
+[Tokenless CI releases](#tokenless-ci-releases-trusted-publishing).
 
 Verify:
 
@@ -64,6 +61,127 @@ npm view @dsh-work-plugin/bundle version dependencies repository
 mkdir -p /tmp/install-check && cd /tmp/install-check
 npm i @dsh-work-plugin/bundle --dry-run
 ```
+
+## Tokenless CI releases (trusted publishing)
+
+A tag push publishes through GitHub Actions, which proves *which repository and
+which workflow* is asking. npm exchanges that GitHub OIDC token for a credential
+that is valid for one publish, so no `NPM_TOKEN` secret exists to leak, rotate or
+leave behind. The same publish carries a provenance attestation.
+
+This is the recommended path, not only a security nicety: npm now treats a
+granular token with **Bypass 2FA** as a restricted credential — direct publishes
+and account changes may be refused with `403 ... Granular access tokens that
+bypass two-factor authentication may not perform this action` — and a publish can
+be quietly turned into a staged release that needs a person to approve it. The
+0.3.0 release went through exactly that. OIDC publishes do not.
+
+### Before you start
+
+- Two-factor authentication enabled on the npm account that owns the packages.
+- The five packages already exist on the registry (first publish has to happen
+  with a token; trusted publishing cannot create a package).
+- `npm` 11.15.0 or later if you use the CLI route below. This machine's npm is
+  11.6.2, so run the commands through `npx --yes npm@11.21.3`.
+- The workflow runs on a GitHub-hosted runner (`ubuntu-latest`). Trusted
+  publishing does not accept self-hosted runners.
+
+### Configure the five trust relationships in the web UI
+
+There is no organisation-wide switch: each package needs its own relationship.
+
+1. Sign in on npmjs.com as `silverze`.
+2. Open the package, e.g.
+   <https://www.npmjs.com/package/@dsh-work-plugin/skills>, and click **Settings**
+   in the package header (not the account settings page).
+3. Find **Trusted Publisher** → **Add trusted publisher** → **GitHub Actions**.
+4. Fill in exactly:
+
+   | Field | Value |
+   | --- | --- |
+   | Organization or user | `silverze` |
+   | Repository | `dsh-work-plugin` |
+   | Workflow filename | `release.yml` |
+   | Environment name | leave empty |
+
+   The workflow filename is a filename only — no path, but it must keep the
+   `.yml` extension and the file must live in `.github/workflows/`. The
+   environment has to match the job: `release.yml` sets none, so leaving it empty
+   is required.
+
+5. Under **Allowed actions**, tick **npm publish**. Connections created after
+   2026-09-03 allow *staged* publishing only by default; our workflow publishes
+   directly, and without this tick the registry rejects it.
+6. **Add trusted publisher**, then repeat steps 2–5 for `feishu`, `host`,
+   `client` and `bundle`.
+
+### Configure the five trust relationships from the CLI
+
+Same effect, no clicking through five package pages, but the commands need an
+interactive 2FA confirmation — a bypass-2FA granular token is refused by the
+`npm trust` endpoints, so a CI secret cannot do this for you.
+
+```bash
+for p in skills feishu host client bundle; do
+  npx --yes npm@11.21.3 trust github "@dsh-work-plugin/$p" \
+    --repo silverze/dsh-work-plugin --file release.yml --allow-publish --yes
+  sleep 2
+done
+
+npx --yes npm@11.21.3 trust list @dsh-work-plugin/skills   # shows the ID and claims
+```
+
+Facts worth knowing before re-running anything:
+
+- `--allow-publish` is the flag that permits a direct `npm publish`;
+  `--allow-stage-publish` only permits `npm stage publish`.
+- Omit `--env` unless the workflow declares `environment:` with the same name.
+- `npm trust` writes one relationship per package; a second `npm trust github`
+  against an already-configured package fails. To change it:
+  `npm trust revoke --id <id> <package>`, then create the new one.
+- `npm trust list <package>` is the quickest way to confirm what is configured
+  and to copy the ID for a revoke.
+
+### What the workflow does
+
+`release.yml` already requests `id-token: write`, which is the one hard
+requirement; everything else is pnpm's job:
+
+- The publish step runs `scripts/release-publish.mjs`, which calls
+  `pnpm publish --registry=https://registry.npmjs.org`. pnpm exchanges the GitHub
+  OIDC token itself; the 11.28.5 pinned here also contains pnpm's 11.1.3 fix,
+  which ignores the empty `_authToken=${NODE_AUTH_TOKEN}` line that
+  `actions/setup-node` writes when `registry-url` is set and no token exists.
+- No `NODE_AUTH_TOKEN` is set in the job. Do not add one "to be safe": an empty
+  token breaks the exchange, and a real token is exactly what this setup removes.
+- `--provenance` is passed only when `GITHUB_ACTIONS=true`; on a laptop that flag
+  fails with `Automatic provenance generation not supported for provider: null`.
+- The step is not skipped when no secret is present any more. Publishing a tag
+  before the trust relationships exist now fails the run instead of staying green
+  and doing nothing — that failure is the signal to go back to this page.
+
+### Verify on the next release
+
+1. Bump the five versions and `CHANGELOG.md`, commit, then
+   `git tag -a vX.Y.Z -m ...` and push the tag.
+2. Watch the **Release** run: the publish step prints
+   `publish @dsh-work-plugin/skills@X.Y.Z` followed by
+   `📦 @dsh-work-plugin/skills@X.Y.Z → https://registry.npmjs.org/`, five times.
+3. Open the package page: each version shows **Built and signed on GitHub
+   Actions** under the version list (the provenance badge).
+4. After the first green run, delete the old secret under
+   *Repo → Settings → Secrets and variables → Actions → NPM_TOKEN*. The local
+   token can stay for emergency laptop releases.
+
+### When it fails
+
+| Symptom | Cause |
+| --- | --- |
+| `403` / "not authorized to publish this package" | Workflow filename, repository or environment does not match the trust relationship, or **npm publish** was not ticked under Allowed actions |
+| `EOTP` or the bypass-2FA message in CI | A `NODE_AUTH_TOKEN` is still set in the job or the repo secret is being injected |
+| `npm trust` refuses with a 2FA error | Account 2FA is off, or the token in `~/.npmrc` is a bypass-2FA granular token — log in interactively |
+| Publish step skipped, run green | An older `release.yml` with the `if [ -z "$NODE_AUTH_TOKEN" ]` guard is still on the tag |
+| `EUSAGE Automatic provenance generation not supported for provider: null` | `--provenance` reached a laptop publish; only the CI path should pass it |
 
 ## Install and upgrade
 
@@ -115,3 +233,4 @@ Every number in that description is checkable in the packages: 14 `work_*` tools
 - [ ] Clean `DSH_HOME` install + boot, work mode visible
 - [ ] No token, secret, real chat name or order number in the repository
 - [ ] `CHANGELOG.md` updated and tagged
+- [ ] Trusted publisher configured for all five packages, so the tag push needs no `NPM_TOKEN`

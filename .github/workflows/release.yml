@@ -7,13 +7,13 @@ on:
 
 permissions:
   contents: read
+  # Trusted publishing: GitHub mints an OIDC token and pnpm exchanges it for a
+  # credential valid for this one publish. No NPM_TOKEN secret is involved.
   id-token: write
 
 jobs:
   publish:
     runs-on: ubuntu-latest
-    env:
-      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -28,16 +28,10 @@ jobs:
       - run: pnpm build
       - run: pnpm test
       - run: pnpm check:public
-      # Publishing needs either a granular token with bypass-2FA (NPM_TOKEN)
-      # or a trusted publisher configured for each package on npmjs.com.
-      # Without one of them the release job stays green and skips this step,
-      # so a tag push never leaves a red run behind. The check has to happen in
-      # the shell: an unset secret arrives as an empty env value, and a
-      # `if: env.NODE_AUTH_TOKEN != ''` guard still evaluates true for it.
+      # Each package needs a trusted publisher on npmjs.com (one relationship per
+      # package, workflow file release.yml, "npm publish" allowed). Configure them
+      # before pushing the first tag; see docs/release.md for the steps. Without
+      # them this step fails on purpose: a release run that stays green while
+      # publishing nothing hides a broken configuration.
       - name: Publish to npm
-        run: |
-          if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
-            echo "::notice::Publishing skipped: set the NPM_TOKEN secret or configure a trusted publisher for @dsh-work-plugin/* on npmjs.com."
-            exit 0
-          fi
-          node scripts/release-publish.mjs
+        run: node scripts/release-publish.mjs

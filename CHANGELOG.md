@@ -6,6 +6,15 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- CI publishes without a stored token: `release.yml` now relies on trusted
+  publishing (GitHub OIDC, `id-token: write`) and `docs/release.md` walks through
+  the one-time configuration for all five packages, including the **npm publish**
+  permission that new trust relationships no longer grant by default. A tag push
+  no longer skips publishing when `NPM_TOKEN` is absent — a missing trust
+  relationship fails the run instead of passing silently.
+
 ## [0.3.0] - 2026-11-23
 
 ### Changed
