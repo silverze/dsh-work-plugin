@@ -1,6 +1,6 @@
 {
   "name": "@dsh-work-plugin/skills",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Bundled work skills provider for DSH Work: research, weekly report, meeting minutes, data analysis, presentation deck, and document polish.",
   "license": "MIT",
   "author": "silverze",

@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-23
+
 ### Changed
 
 - Work mode is now a native DSH agent preset instead of a plugin toggle: the new
@@ -145,7 +147,9 @@ All notable changes to this project are documented here. The format follows
 - Seven bundled work skills: research, weekly report, meeting minutes, data
   analysis, presentation deck, document polish and screen awareness.
 
-[Unreleased]: https://github.com/silverze/dsh-work-plugin/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/silverze/dsh-work-plugin/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/silverze/dsh-work-plugin/compare/v0.2.1...v0.3.0
+[0.2.1]: https://github.com/silverze/dsh-work-plugin/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/silverze/dsh-work-plugin/releases/tag/v0.2.0
 [0.1.2]: https://github.com/silverze/dsh-work-plugin/releases/tag/v0.1.2
 [0.1.1]: https://github.com/silverze/dsh-work-plugin/releases/tag/v0.1.1
