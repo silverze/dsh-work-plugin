@@ -1,6 +1,6 @@
 {
   "name": "@dsh-work-plugin/bundle",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "DSH Work bundle: composes the work profile with task services, Feishu tools, the workbench client panel, and bundled work skills.",
   "license": "MIT",
   "author": "silverze",

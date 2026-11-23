@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-23
+
 ### Added
 
 - Feishu write tools can be previewed: every one takes `dryRun: true`, which
@@ -174,7 +176,8 @@ All notable changes to this project are documented here. The format follows
 - Seven bundled work skills: research, weekly report, meeting minutes, data
   analysis, presentation deck, document polish and screen awareness.
 
-[Unreleased]: https://github.com/silverze/dsh-work-plugin/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/silverze/dsh-work-plugin/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/silverze/dsh-work-plugin/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/silverze/dsh-work-plugin/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/silverze/dsh-work-plugin/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/silverze/dsh-work-plugin/releases/tag/v0.2.0
